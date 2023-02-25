@@ -25,4 +25,6 @@ futures = { workspace = true }
 bytes = { workspace = true }
 
 
-agora-mail-proto = { workspace = true }
+agora-mail-types = { workspace = true }
+
+log = { workspace = true }

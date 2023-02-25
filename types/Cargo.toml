@@ -1,17 +1,23 @@
 [package]
-name = "agora-mail-proto"
+name = "agora-mail-types"
 license-file.workspace = true
 edition.workspace = true
 version.workspace = true
-description = "AgoraMail server/client communication protocol message format define using protobuff"
-documentation = "https://docs.rs/agora-mail-proto"
+description = "AgoraMail protocol basic types"
+documentation = "https://docs.rs/agora-mail-types"
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 protobuf = { workspace = true }
+# serde support
+serde = { workspace = true }
+hex = { workspace = true }
 
+# error
+thiserror = { workspace = true }
+anyhow = { workspace = true }
 
 [build-dependencies]
 protobuf-codegen = { workspace = true }
