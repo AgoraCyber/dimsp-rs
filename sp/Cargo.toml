@@ -1,0 +1,28 @@
+[package]
+name = "agora-mail-sp"
+license-file.workspace = true
+edition.workspace = true
+version.workspace = true
+description = "AgoraMail service provider core framework"
+documentation = "https://docs.rs/agora-mail-sp"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# serde support
+serde = { workspace = true }
+
+
+# error
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# async 
+async-trait = { workspace = true }
+futures = { workspace = true }
+
+
+bytes = { workspace = true }
+
+
+agora-mail-proto = { workspace = true }

@@ -1,0 +1,18 @@
+[package]
+name = "agora-mail-proto"
+license-file.workspace = true
+edition.workspace = true
+version.workspace = true
+description = "AgoraMail server/client communication protocol message format define using protobuff"
+documentation = "https://docs.rs/agora-mail-proto"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+protobuf = { workspace = true }
+
+
+[build-dependencies]
+protobuf-codegen = { workspace = true }
+protoc-bin-vendored = { workspace = true }
