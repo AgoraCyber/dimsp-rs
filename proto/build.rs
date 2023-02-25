@@ -4,7 +4,7 @@ fn main() {
         .protoc()
         .protoc_path(&protoc_bin_vendored::protoc_bin_path().unwrap())
         .includes(&["src/proto"])
-        .input("src/proto/message.proto")
+        .input("src/proto/sync.proto")
         .out_dir("src/proto")
         .run_from_script();
 }

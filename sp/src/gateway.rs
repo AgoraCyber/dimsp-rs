@@ -1,4 +1,5 @@
-use futures::{AsyncRead, AsyncWrite};
+use agora_mail_proto::sync::SyncMessage;
+use futures::{Sink, Stream};
 
 /// The abstract of client calling gateway.
 #[async_trait::async_trait]
@@ -14,8 +15,8 @@ pub trait Gateway {
 /// Effective user connection
 pub struct Connection<Input, Output>
 where
-    Input: AsyncRead + Send + Sync,
-    Output: AsyncWrite + Send + Sync,
+    Input: Stream<Item = SyncMessage> + Send + Sync,
+    Output: Sink<SyncMessage> + Send + Sync,
 {
     /// UNS(User name service) NFT id.
     pub uns_id: String,

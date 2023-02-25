@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+// Sync protocol root message
+message SyncMessage {
+    enum Type {
+        Handshake = 0;
+        OpenStream = 1;
+        CloseStream = 2;
+        WriteData = 3;
+        QosFragment = 4;
+        QosKeepAlive = 5;
+    }
+
+    oneof content {
+        /// Handshake content.
+        Handshake handshake = 1;
+        OpenStream open_stream = 2;
+        CloseStream close_stream = 3;
+        WriteData write_data = 4;
+        QosFragment fragment = 5;
+    }
+}
+
+message Handshake {
+    Hash32 endpoint_id = 1;
+    uint64 send_seq_id = 2;
+    uint64 recv_seq_id = 3;
+}
+
+/// Message to open sync stream . 
+message OpenStream {
+    /// End to end stream sequence id
+    uint64 seq_id = 1;
+    /// UNS nft id. message send to account.
+    uint64 to = 2;
+    /// Force rewrite an opened stream.
+    /// 
+    /// When force is true if new stream has different msg_hash32, 
+    /// receiver must discard received datas.
+    /// 
+    /// otherwise the receiver may close the stream when send `WriteData`
+    bool force = 3;
+    /// Stream total length in bytes. sequential transfer in 4k pieces.
+    uint64 length = 4;
+    /// Total message keccak256 hash
+    Hash32 msg_hash32 = 5;
+    /// fragments hash list
+    repeated Hash32 fragment_hash32s = 6;
+    /// If stream total length < 4k, write body with Open stream message.
+    WriteData payload = 7;
+}
+
+/// Message to close opened stream. 
+/// 
+/// The sender must wait for the QosFragment message to determine if the flush was successful.
+/// Success if sync_fragment field of QosFragment equal the max fragment offset, otherwise failed.
+message CloseStream {
+    /// Stream sequence id, handle by receiver.
+    uint64 seq_id = 1;
+    /// Stream to account
+    uint64 to = 2;
+    /// True if cache received datas, otherwise drop this stream.
+    bool flush = 3;
+}
+
+/// Stream send payload
+message WriteData {
+    /// Stream id.
+    uint64 seq_id = 1;
+    /// Stream fragment offset id.
+    uint64 fragment_id = 2;
+    /// This fragment payload.
+    bytes payload = 3;
+}
+
+
+/// Qos to control sync fragment.
+/// After sending the OpenStream message, the sender must wait for the QosFragment message 
+/// before `WriteData`.
+message QosFragment {
+    /// Stream sequence id, handle by receiver.
+    uint64 seq_id = 1;
+    /// Stream to account
+    uint64 to = 2;
+    /// Start sync fragment offset
+    uint64 sync_fragment = 3;
+    /// Opened stream total message keccak256 hash
+    Hash32 msg_hash32 = 4;
+}
+
+
+
+// 32 bytes hash message
+message Hash32 {
+    uint64 h1 = 1;   
+    uint64 h2 = 2;
+    uint64 h3 = 3;
+    uint64 h4 = 4;
+}
