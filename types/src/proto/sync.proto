@@ -15,50 +15,54 @@ message SyncMessage {
         OpenNextInboxStreamAck = 9;
         ReadFragment = 10;
         ReadFragmentAck = 11;
+        CloseInboxStream = 12;
+        CloseInboxStreamAck = 13;
     }
 
+    uint64 id = 1;
+
+    Type type = 2;
+
     oneof content {
-        OpenWriteStream open_write_stream = 1;
-        OpenWriteStreamAck open_write_stream_ack = 2;
-        CloseWriteStream close_write_stream = 3;
-        CloseWriteStreamAck close_write_stream_ack = 4;
-        WriteFragment write_fragment = 5;
-        WriteFragmentAck write_fragment_ack = 6;
-        Inbox inbox = 7;
-        OpenNextInboxStreamAck open_next_inbox_stream_ack = 8;
-        ReadFragment read_fragment = 9;
-        ReadFragmentAck read_fragment_ack = 10;
+        OpenWriteStream open_write_stream = 3;
+        OpenWriteStreamAck open_write_stream_ack = 4;
+        CloseWriteStream close_write_stream = 5;
+        CloseWriteStreamAck close_write_stream_ack = 6;
+        WriteFragment write_fragment = 7;
+        WriteFragmentAck write_fragment_ack = 8;
+        Inbox inbox = 9;
+        OpenNextInboxStreamAck open_next_inbox_stream_ack = 10;
+        ReadFragment read_fragment = 11;
+        ReadFragmentAck read_fragment_ack = 12;
+        CloseInboxStream close_inbox_stream = 13;
+        CloseInboxStreamAck close_inbox_stream_ack = 14;
     }
 }
 
+message CloseInboxStream {
+    uint64 stream_handle = 1;
+    bool mark_as_read = 2;
+}
+
+message CloseInboxStreamAck {
+    uint64 stream_handle = 1;
+    SyncError sync_error = 2;
+}
+
 message OpenNextInboxStreamAck {
-    enum Type {
-        Accept = 0;
-        /// No more inbox stream.
-        Noneed = 2;
-    }
+    /// Opened stream handle.
+    OpenReadStream read_stream = 3;
+    /// When reject.
+    SyncError sync_error = 4;
+}
 
-    message ReadStream {
-        uint64 length = 1;
+message OpenReadStream {
 
-        uint64 stream_handle = 2;
-
-        repeated Hash32 fragment_hashes = 3;
-    }
-
-    /// To match [`OpenWriteStream`] message.
-    uint64 id = 1;
-    /// ack type.
-    Type ack_type = 2;
+    uint64 length = 1;
     
-    oneof content {
-        /// Opened stream handle.
-        ReadStream read_stream = 3;
-        /// When reject.
-        SyncError sync_error = 4;
-    }
-
+    uint64 stream_handle = 2;
     
+    repeated Hash32 fragment_hashes = 3;
 }
 
 /// Sync data fragment.
@@ -74,29 +78,18 @@ message ReadFragmentAck {
         Accept = 0;
         Reject = 1;
     }
-
-    message Fragment {
-            /// Fragment really length.
-            uint64 length = 1;
-            /// Fragment content data.
-            bytes content = 2;
-    }
     /// Ack type.
     Type ack_type = 1;
     /// Stream handle that this fragment belong to
     uint64 stream_handle = 2;
     /// fragment offset in the stream.
     uint64 offset = 3;
-    /// Reject error information
-    oneof content {
-        SyncError sync_error = 4;
-
-        Fragment fragment = 5;
-    }
-    
+    /// Content
+    bytes content = 4;
+    /// Rejection error
+    SyncError sync_error = 5;
     
 }
-
 /// Try open write stream to target account inbox.
 message OpenWriteStream {
     /// To match result message.
@@ -126,22 +119,17 @@ message OpenWriteStreamAck {
     /// ack type.
     Type ack_type = 2;
     
-    oneof content {
-        /// Opened stream handle.
-        uint64 stream_handle = 3;
-        /// When reject.
-        SyncError sync_error = 4;
-    }
+    /// Opened stream handle.
+    uint64 stream_handle = 3;
+    /// When reject.
+    SyncError sync_error = 4;
 }
 
 message CloseWriteStream {
-     uint64 id = 1;
      uint64 stream_handle = 2;
 }
 
 message CloseWriteStreamAck {
-    /// CloseWriteStream id.
-    uint64 id = 1;
     /// May error
     SyncError sync_error = 2;
 }
@@ -165,8 +153,6 @@ message WriteFragment {
     uint64 stream_handle = 1;
     /// fragment offset in the stream.
     uint64 offset = 2;
-    /// Fragment really length.
-    uint64 length = 3;
     /// Fragment content data.
     bytes content = 4;
 }

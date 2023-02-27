@@ -30,6 +30,28 @@ pub enum PublicKey {
     ECDSA(PublicKeyBuff<33>),
 }
 
+impl Display for PublicKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::RSA1024(value) => {
+                write!(f, "{}", value)
+            }
+            Self::RSA2048(value) => {
+                write!(f, "{}", value)
+            }
+            Self::RSA4096(value) => {
+                write!(f, "{}", value)
+            }
+            Self::Ed25519(value) => {
+                write!(f, "{}", value)
+            }
+            Self::ECDSA(value) => {
+                write!(f, "{}", value)
+            }
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct PublicKeyBuff<const LEN: usize>([u8; LEN]);
 

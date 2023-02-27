@@ -19,7 +19,7 @@ anyhow = { workspace = true }
 
 # async 
 async-trait = { workspace = true }
-futures = { workspace = true }
+futures = { workspace = true, features = ["thread-pool"] }
 
 
 bytes = { workspace = true }
@@ -28,3 +28,7 @@ bytes = { workspace = true }
 dimsp-types = { workspace = true }
 
 log = { workspace = true }
+
+
+once_cell = { workspace = true }
+protobuf = { workspace = true }

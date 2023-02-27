@@ -6,7 +6,7 @@ use futures::{executor::block_on, Sink, SinkExt, Stream};
 /// The abstract of client calling gateway.
 #[async_trait::async_trait]
 pub trait Gateway {
-    type Error: std::error::Error + Debug;
+    type Error: std::error::Error + Debug + Sync + Send;
 
     type Input: Stream<Item = Result<SyncMessage, Self::Error>> + Send + Sync + Unpin;
 
@@ -30,7 +30,7 @@ where
     /// In-process connection sequence id
     pub conn_id: u64,
     /// UNS(User name service) NFT id.
-    pub uns_id: String,
+    pub uns_id: u64,
     /// Input stream,
     pub input: Input,
     /// Output stream.
