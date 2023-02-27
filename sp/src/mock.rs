@@ -482,5 +482,10 @@ async fn test_hub() {
 
     let message = conn.input.next().await.unwrap();
 
-    log::debug!("{}", message);
+    assert_eq!(message.type_.value(), 1);
+
+    let ack = message.open_write_stream_ack();
+
+    assert_eq!(ack.ack_type.value(), 0);
+    assert_eq!(ack.stream_handle, 0);
 }
