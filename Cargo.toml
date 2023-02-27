@@ -6,7 +6,7 @@ version = "0.1.0"
 edition = "2021"
 license-file = "LICENSE"
 keywords = ["futures-rs", "ethereum", "decentralized", "email"]
-description = "SP-centric decentralized mail service network"
+description = "DIMSP(SP-centric Decentralized Instant Message Sync Protocol)"
 readme = "README.md"
 
 [workspace.dependencies]
@@ -33,8 +33,8 @@ protobuf = "^3.0"
 
 
 # internals
-agora-mail-sp = { path = "./sp", version = "^0.1" }
-agora-mail-types = { path = "./types", version = "^0.1" }
+dimsp-sp = { path = "./sp", version = "^0.1" }
+dimsp-types = { path = "./types", version = "^0.1" }
 
 
 log = "^0.4"

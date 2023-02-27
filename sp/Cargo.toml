@@ -1,10 +1,10 @@
 [package]
-name = "agora-mail-sp"
+name = "dimsp-sp"
 license-file.workspace = true
 edition.workspace = true
 version.workspace = true
 description = "AgoraMail service provider core framework"
-documentation = "https://docs.rs/agora-mail-sp"
+documentation = "https://docs.rs/dimsp-sp"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -25,6 +25,6 @@ futures = { workspace = true }
 bytes = { workspace = true }
 
 
-agora-mail-types = { workspace = true }
+dimsp-types = { workspace = true }
 
 log = { workspace = true }

@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use agora_mail_types::SyncMessage;
+use dimsp_types::SyncMessage;
 use futures::{executor::block_on, Sink, SinkExt, Stream};
 
 /// The abstract of client calling gateway.

@@ -1,5 +1,5 @@
-use agora_mail_types::{MNSAccount, OpenWriteStream, WriteFragment};
 use async_trait::async_trait;
+use dimsp_types::{MNSAccount, OpenWriteStream, WriteFragment};
 
 #[derive(Debug, thiserror::Error)]
 pub enum StorageError {
@@ -23,11 +23,17 @@ pub trait Storage {
         &mut self,
         mns: MNSAccount,
         open_write_stream: OpenWriteStream,
-    ) -> Result<Option<Self::WriteStream>, StorageError>;
+    ) -> Result<Self::WriteStream, StorageError>;
 }
 
 #[async_trait]
 pub trait StorageWriteStream {
+    /// Returns `WriteStream` handle id.
+    fn stream_handle(&self) -> u64;
+
+    /// Get start writing fragment offset.
+    /// If noneed to write any more fragment returns [`None`]
+    fn offset(&self) -> Option<u64>;
     /// Write fragment
     async fn write_fragment(&mut self, fragment: WriteFragment) -> Result<(), StorageError>;
 

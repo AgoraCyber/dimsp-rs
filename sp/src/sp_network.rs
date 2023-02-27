@@ -1,5 +1,5 @@
-use agora_mail_types::{MNSAccount, PublicKey, SPRSAccount};
 use async_trait::async_trait;
+use dimsp_types::{MNSAccount, PublicKey, SPRSAccount};
 
 /// Use this trait to fetch **sp network** information.
 #[async_trait]
