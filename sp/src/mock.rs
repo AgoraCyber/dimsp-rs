@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     sync::{atomic::AtomicU64, Arc, Mutex},
+    time::Duration,
 };
 
 use crate::{
@@ -94,6 +95,7 @@ impl Gateway for MockGateway {
 
             Ok(connection)
         } else {
+            log::warn!("Try call concurrent");
             Err(anyhow::format_err!("Try call concurrent"))
         }
     }
@@ -105,6 +107,12 @@ struct MockSpNetworkImpl {
     mns_by_pubkey: HashMap<PublicKey, MNSAccount>,
     mns_by_id: HashMap<u64, MNSAccount>,
     sprs: HashMap<u64, SPRSAccount>,
+}
+
+impl Drop for MockSpNetworkImpl {
+    fn drop(&mut self) {
+        log::debug!("drop sp network");
+    }
 }
 
 #[derive(Default, Clone)]
@@ -171,6 +179,12 @@ struct MockStorageImpl {
     timeline: HashMap<u64, Vec<Blob>>,
     blob_list: HashMap<u64, Blob>,
     seq: u64,
+}
+
+impl Drop for MockStorageImpl {
+    fn drop(&mut self) {
+        log::debug!("drop storage");
+    }
 }
 
 #[derive(Default, Clone)]
@@ -427,13 +441,46 @@ impl Storage for MockStorage {
 
 #[async_std::test]
 async fn test_hub() {
+    _ = pretty_env_logger::try_init();
+
     let (gateway, mut gateway_tester) = MockGateway::new();
-    let sp_network = MockSpNetwork::default();
+    let mut sp_network = MockSpNetwork::default();
     let storage = MockStorage::default();
 
-    let mut hub = DimspHub::new(gateway, sp_network, storage);
+    sp_network.add_mns(MNSAccount {
+        uns: UNSAccount {
+            id: 1,
+            user_name: "test".to_owned(),
+        },
+        r#type: MNSTypes::Unicast,
+        pub_key: PublicKey::Ed25519(PublicKeyBuff([0u8; 32])),
+        quota: 1024 * 1024 * 10,
+        lease: Duration::from_secs(3600),
+    });
+
+    let hub = DimspHub::new(gateway, sp_network, storage);
 
     hub.start().unwrap();
 
-    gateway_tester.connect(1).await.unwrap();
+    let mut conn = gateway_tester.connect(1).await.unwrap();
+
+    let mut message = SyncMessage::new();
+
+    message.type_ = sync_message::Type::OpenWriteStream.into();
+
+    let mut open_write_stream = OpenWriteStream::new();
+
+    let data = "hello";
+
+    open_write_stream.length = data.len() as u64;
+
+    open_write_stream.fragment_hashes = vec![];
+
+    message.set_open_write_stream(open_write_stream);
+
+    conn.output.send(message).await.unwrap();
+
+    let message = conn.input.next().await.unwrap();
+
+    log::debug!("{}", message);
 }

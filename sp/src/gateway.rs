@@ -1,5 +1,5 @@
 use dimsp_types::SyncMessage;
-use futures::{executor::block_on, Sink, SinkExt, Stream};
+use futures::{Sink, Stream};
 
 /// The abstract of client calling gateway.
 #[async_trait::async_trait]
@@ -41,11 +41,6 @@ where
     Output::Error: std::error::Error + Sync + Send + 'static,
 {
     fn drop(&mut self) {
-        match block_on(self.output.close()) {
-            Err(err) => {
-                log::error!("Close gateway connection failed, {:?}", err);
-            }
-            Ok(_) => {}
-        }
+        log::debug!("drop user({}) connection({})", self.uns_id, self.conn_id,);
     }
 }

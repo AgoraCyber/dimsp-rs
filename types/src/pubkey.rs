@@ -53,7 +53,7 @@ impl Display for PublicKey {
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct PublicKeyBuff<const LEN: usize>([u8; LEN]);
+pub struct PublicKeyBuff<const LEN: usize>(pub [u8; LEN]);
 
 impl<const LEN: usize> Display for PublicKeyBuff<LEN> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

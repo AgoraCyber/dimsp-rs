@@ -36,3 +36,4 @@ protobuf = { workspace = true }
 [dev-dependencies]
 rand = { workspace = true }
 async-std = { workspace = true }
+pretty_env_logger = { workspace = true }

@@ -1,12 +1,5 @@
-use std::sync::{Arc, Mutex};
-
 use dimsp_types::{sync_message::Type, SyncMessage};
-use futures::{
-    future::RemoteHandle,
-    task::{SpawnError, SpawnExt},
-    Future, SinkExt, StreamExt,
-};
-use once_cell::sync::OnceCell;
+use futures::{task::SpawnError, SinkExt, StreamExt};
 
 use thiserror::Error;
 
@@ -14,6 +7,7 @@ use crate::{
     gateway::{Connection, Gateway},
     sp_network::{SpNetwork, SpNetworkError},
     storage::Storage,
+    threadpool::run_background,
 };
 
 #[derive(Debug, Error)]
@@ -36,7 +30,12 @@ pub struct DimspHub<G, N, S> {
     gateway: G,
     network: N,
     storage: S,
-    wait_handler: Arc<Mutex<Option<RemoteHandle<()>>>>,
+}
+
+impl<G, N, S> Drop for DimspHub<G, N, S> {
+    fn drop(&mut self) {
+        log::debug!("drop hub");
+    }
 }
 
 impl<G, N, S> Default for DimspHub<G, N, S>
@@ -73,7 +72,6 @@ where
             gateway,
             network,
             storage,
-            wait_handler: Default::default(),
         }
     }
 }
@@ -84,41 +82,19 @@ where
     S: Storage + Clone + Send + Sync + 'static,
 {
     /// Start [`DimspHub`] main event loop in background thread.
-    pub fn start(&mut self) -> anyhow::Result<()> {
-        let mut wait_handler = self.wait_handler.lock().unwrap();
-        if wait_handler.is_none() {
-            let hub = self.clone();
-            let handle = Self::run_background(async move {
-                match hub.event_loop().await {
-                    Ok(_) => {
-                        log::debug!("Dimsp event loop exit(SUCCESS).");
-                    }
-                    Err(err) => {
-                        log::error!("Dimsp event loop exit(FAILED),{}.", err);
-                    }
+    pub fn start(self) -> anyhow::Result<()> {
+        let hub = self;
+
+        run_background(async move {
+            match hub.event_loop().await {
+                Ok(_) => {
+                    log::debug!("Dimsp event loop exit(SUCCESS).");
                 }
-            })?;
-
-            *wait_handler = Some(handle);
-
-            Ok(())
-        } else {
-            Err(DismpError::StartTwice.into())
-        }
-    }
-
-    fn run_background<Fut>(fut: Fut) -> anyhow::Result<RemoteHandle<Fut::Output>>
-    where
-        Fut: Future + Send + 'static,
-        Fut::Output: Send + 'static,
-    {
-        use futures::executor::ThreadPool;
-
-        static THREAD_POOL: OnceCell<ThreadPool> = OnceCell::new();
-
-        Ok(THREAD_POOL
-            .get_or_init(|| ThreadPool::new().unwrap())
-            .spawn_with_handle(fut)?)
+                Err(err) => {
+                    log::error!("Dimsp event loop exit(FAILED),{}.", err);
+                }
+            }
+        })
     }
 }
 
@@ -131,9 +107,10 @@ where
     /// [`DimspHub`] main event loop function.
     async fn event_loop(mut self) -> anyhow::Result<()> {
         while let Some(conn) = self.gateway.accept().await? {
+            log::debug!("loop {}", conn.conn_id);
             let hub = self.clone();
 
-            _ = Self::run_background(async move {
+            _ = run_background(async move {
                 let conn_id = conn.conn_id;
                 let uns_id = conn.uns_id;
                 match hub.handle_incoming_connection(conn).await {
@@ -169,6 +146,8 @@ where
     ) -> anyhow::Result<()> {
         use protobuf::Enum;
 
+        log::debug!("handle user({}) connection({})", conn.uns_id, conn.conn_id);
+
         while let Some(message) = conn.input.next().await {
             // extract message type first.
             let message_type = Type::from_i32(message.type_.value())
@@ -192,6 +171,8 @@ where
             };
 
             response.id = message_id;
+
+            log::debug!("send response {}", message_id);
 
             conn.output.send(response).await?;
         }

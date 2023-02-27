@@ -49,3 +49,5 @@ rs-snowflake = "0.6.0"
 rand = { version = "0.8.5", features = ["getrandom"] }
 
 async-std = { version = "1.12.0", features = ["attributes"] }
+
+pretty_env_logger = "^0.4"
