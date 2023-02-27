@@ -4,7 +4,7 @@ use dimsp_types::{sync_message::Type, SyncMessage};
 use futures::{
     future::RemoteHandle,
     task::{SpawnError, SpawnExt},
-    Future, SinkExt, TryStreamExt,
+    Future, SinkExt, StreamExt,
 };
 use once_cell::sync::OnceCell;
 
@@ -12,7 +12,7 @@ use thiserror::Error;
 
 use crate::{
     gateway::{Connection, Gateway},
-    sp_network::SpNetwork,
+    sp_network::{SpNetwork, SpNetworkError},
     storage::Storage,
 };
 
@@ -130,9 +130,7 @@ where
 {
     /// [`DimspHub`] main event loop function.
     async fn event_loop(mut self) -> anyhow::Result<()> {
-        loop {
-            let conn = self.gateway.accept().await?;
-
+        while let Some(conn) = self.gateway.accept().await? {
             let hub = self.clone();
 
             _ = Self::run_background(async move {
@@ -153,6 +151,8 @@ where
                 }
             })?;
         }
+
+        Ok(())
     }
 }
 
@@ -165,11 +165,11 @@ where
     /// Handle incoming user connection.
     async fn handle_incoming_connection(
         mut self,
-        mut conn: Connection<G::Input, G::Output, G::Error>,
+        mut conn: Connection<G::Input, G::Output>,
     ) -> anyhow::Result<()> {
         use protobuf::Enum;
 
-        while let Some(message) = conn.input.try_next().await? {
+        while let Some(message) = conn.input.next().await {
             // extract message type first.
             let message_type = Type::from_i32(message.type_.value())
                 .ok_or(DismpError::SyncMessageType(message.type_.value()))?;
@@ -208,7 +208,11 @@ where
             return Err(DismpError::SyncMessageContent("OpenWriteStream".to_owned()).into());
         }
 
-        let mns = self.network.mns_by_uns_id(uns_id).await?;
+        let mns = self
+            .network
+            .mns_by_uns_id(uns_id)
+            .await?
+            .ok_or(SpNetworkError::MNSById(uns_id))?;
 
         let ack = self
             .storage
@@ -256,7 +260,11 @@ where
         uns_id: u64,
         message: SyncMessage,
     ) -> anyhow::Result<SyncMessage> {
-        let mns = self.network.mns_by_uns_id(uns_id).await?;
+        let mns = self
+            .network
+            .mns_by_uns_id(uns_id)
+            .await?
+            .ok_or(SpNetworkError::MNSById(uns_id))?;
 
         let ack = self.storage.open_inbox(mns).await?;
 
@@ -276,7 +284,12 @@ where
         uns_id: u64,
         message: SyncMessage,
     ) -> anyhow::Result<SyncMessage> {
-        let mns = self.network.mns_by_uns_id(uns_id).await?;
+        let mns = self
+            .network
+            .mns_by_uns_id(uns_id)
+            .await?
+            .ok_or(SpNetworkError::MNSById(uns_id))?;
+
         let ack = self.storage.open_next_inbox_stream(mns).await?;
 
         let mut response = SyncMessage::new();

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{MNSAccount, PublicKey};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SPRSAccount {
     pub mns: MNSAccount,
     /// SPRS endpoints.
@@ -14,7 +14,7 @@ pub struct SPRSAccount {
 }
 
 /// SPRS node endpoint definition
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SPRSEndpoint {
     /// Endpoint listening addr.
