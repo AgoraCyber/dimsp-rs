@@ -21,8 +21,6 @@ pub enum StorageError {
 /// Sync stream with persistence support.
 #[async_trait]
 pub trait Storage {
-    type Error: std::error::Error + Sync + Send + 'static;
-
     /// Open write stream for [`mns`](MNSAccount) account.
     ///
     /// The implementation needs to determine whether the data is

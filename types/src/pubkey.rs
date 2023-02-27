@@ -10,7 +10,7 @@ pub enum PublicKeyError {
     DeserializeLength(usize, String),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "type", content = "value")]
 pub enum PublicKey {
     /// rsa1024 public key
@@ -52,7 +52,7 @@ impl Display for PublicKey {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PublicKeyBuff<const LEN: usize>([u8; LEN]);
 
 impl<const LEN: usize> Display for PublicKeyBuff<LEN> {

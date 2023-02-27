@@ -15,3 +15,6 @@ pub use pubkey::*;
 
 mod endpoint;
 pub use endpoint::*;
+
+mod hash;
+pub use hash::*;

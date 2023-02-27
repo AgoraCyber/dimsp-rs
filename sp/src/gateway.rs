@@ -31,6 +31,7 @@ where
     pub conn_id: u64,
     /// UNS(User name service) NFT id.
     pub uns_id: u64,
+    /// stream storage lease duration
     /// Input stream,
     pub input: Input,
     /// Output stream.

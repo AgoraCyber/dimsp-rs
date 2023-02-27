@@ -50,18 +50,25 @@ message CloseInboxStreamAck {
 }
 
 message OpenNextInboxStreamAck {
+    enum Type {
+        Accept = 0;
+        Nomore = 1;
+        Reject = 3;
+    }
+
+    Type type = 1;
     /// Opened stream handle.
-    OpenReadStream read_stream = 3;
+    OpenReadStream read_stream = 2;
     /// When reject.
-    SyncError sync_error = 4;
+    SyncError sync_error = 3;
 }
 
 message OpenReadStream {
 
-    uint64 length = 1;
-    
-    uint64 stream_handle = 2;
-    
+    uint64 stream_handle = 1;
+
+    uint64 length = 2;
+
     repeated Hash32 fragment_hashes = 3;
 }
 
@@ -75,8 +82,8 @@ message ReadFragment {
 /// Sync data fragment.
 message ReadFragmentAck {
     enum Type {
-        Accept = 0;
-        Reject = 1;
+        Continue = 0;
+        Break = 1;
     }
     /// Ack type.
     Type ack_type = 1;
@@ -92,18 +99,16 @@ message ReadFragmentAck {
 }
 /// Try open write stream to target account inbox.
 message OpenWriteStream {
-    /// To match result message.
-    uint64 id = 1;
     /// Total stream length.
-    uint64 length = 2;
+    uint64 length = 1;
     /// Write stream [`to`] account's inbox.
-    uint64 to = 3;
+    uint64 to = 2;
     /// Offset to start writing data. 
-    uint64 offset = 4;
+    uint64 offset = 3;
     /// content fragment hashes, a fragment's maximum length is up to 4M bytes.
-    repeated Hash32 fragment_hashes = 5;
+    repeated Hash32 fragment_hashes = 4;
     /// If `length` < 4M, this field must content the whole stream data.
-    WriteFragment inline_stream = 6;
+    WriteFragment inline_stream = 5;
 }
 
 /// Ack to OpenWriteStream
@@ -114,13 +119,12 @@ message OpenWriteStreamAck {
         /// When data already saved or just need sync stream metadata.
         Noneed = 2;
     }
-    /// To match [`OpenWriteStream`] message.
-    uint64 id = 1;
     /// ack type.
-    Type ack_type = 2;
-    
+    Type ack_type = 1;
     /// Opened stream handle.
-    uint64 stream_handle = 3;
+    uint64 stream_handle = 2;
+    /// next fragment offset
+    uint64 next_fragment = 3;
     /// When reject.
     SyncError sync_error = 4;
 }
@@ -137,7 +141,9 @@ message CloseWriteStreamAck {
 /// Syc protocol errors.
 enum SyncError {
     /// The account storage quota is not enough to store whole stream.
-    Resource = 0;
+    Quota = 0;
+    /// Resource not found
+    Resource = 1;
 }
 
 // 32 bytes hash message
