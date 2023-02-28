@@ -1,5 +1,5 @@
 [workspace]
-members = ["sp", "types", "storage"]
+members = ["sp", "types", "storage", "gateway"]
 
 [workspace.package]
 version = "0.1.0"
@@ -35,6 +35,8 @@ protobuf = "^3.0"
 # internals
 dimsp-sp = { path = "./sp", version = "^0.1" }
 dimsp-types = { path = "./types", version = "^0.1" }
+dimsp-gateway = { path = "./gateway", version = "^0.1" }
+dimsp-storage = { path = "./storage", version = "^0.1" }
 
 
 log = "^0.4"

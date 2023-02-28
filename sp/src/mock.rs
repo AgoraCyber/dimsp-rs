@@ -11,6 +11,7 @@ use crate::{
 };
 
 use async_trait::async_trait;
+use dimsp_storage::Storage;
 use dimsp_types::*;
 use futures::{
     channel::mpsc::{self, SendError},

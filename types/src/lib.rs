@@ -18,6 +18,3 @@ pub use endpoint::*;
 
 mod hash;
 pub use hash::*;
-
-mod storage;
-pub use storage::*;

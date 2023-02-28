@@ -29,4 +29,3 @@ protobuf = { workspace = true }
 
 #internals
 dimsp-types = { workspace = true }
-dimsp-sp = { workspace = true }

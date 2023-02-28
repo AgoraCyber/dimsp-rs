@@ -23,15 +23,13 @@ futures = { workspace = true, features = ["thread-pool"] }
 
 
 bytes = { workspace = true }
+log = { workspace = true }
+once_cell = { workspace = true }
 
+protobuf = { workspace = true }
 
 dimsp-types = { workspace = true }
-
-log = { workspace = true }
-
-
-once_cell = { workspace = true }
-protobuf = { workspace = true }
+dimsp-storage = { workspace = true }
 
 [dev-dependencies]
 rand = { workspace = true }

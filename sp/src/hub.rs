@@ -1,4 +1,4 @@
-use dimsp_types::{sync_message::Type, Storage, SyncMessage};
+use dimsp_types::{sync_message::Type, SyncMessage};
 use futures::{task::SpawnError, SinkExt, StreamExt};
 
 use thiserror::Error;
@@ -8,6 +8,8 @@ use crate::{
     sp_network::{SpNetwork, SpNetworkError},
     threadpool::run_background,
 };
+
+use dimsp_storage::Storage;
 
 #[derive(Debug, Error)]
 pub enum DismpError {
