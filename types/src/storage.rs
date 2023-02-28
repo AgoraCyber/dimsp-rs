@@ -1,9 +1,9 @@
-use async_trait::async_trait;
-use dimsp_types::{
+use crate::{
     CloseInboxStream, CloseInboxStreamAck, CloseWriteStream, CloseWriteStreamAck, Inbox,
     MNSAccount, OpenNextInboxStreamAck, OpenWriteStream, OpenWriteStreamAck, ReadFragment,
     ReadFragmentAck, WriteFragment, WriteFragmentAck,
 };
+use async_trait::async_trait;
 
 /// Storage implementation standard errors
 #[derive(Debug, thiserror::Error)]

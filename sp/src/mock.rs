@@ -8,7 +8,6 @@ use crate::{
     gateway::{Connection, Gateway},
     hub::DimspHub,
     sp_network::SpNetwork,
-    storage::Storage,
 };
 
 use async_trait::async_trait;

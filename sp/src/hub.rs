@@ -1,4 +1,4 @@
-use dimsp_types::{sync_message::Type, SyncMessage};
+use dimsp_types::{sync_message::Type, Storage, SyncMessage};
 use futures::{task::SpawnError, SinkExt, StreamExt};
 
 use thiserror::Error;
@@ -6,7 +6,6 @@ use thiserror::Error;
 use crate::{
     gateway::{Connection, Gateway},
     sp_network::{SpNetwork, SpNetworkError},
-    storage::Storage,
     threadpool::run_background,
 };
 

@@ -19,6 +19,8 @@ hex = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 
+async-trait = { workspace = true }
+
 [build-dependencies]
 protobuf-codegen = { workspace = true }
 protoc-bin-vendored = { workspace = true }

@@ -4,16 +4,8 @@ use std::{
 };
 
 use async_trait::async_trait;
-use dimsp_sp::storage::{Storage, StorageError};
 
-use dimsp_types::{
-    open_next_inbox_stream_ack,
-    open_write_stream_ack::{self, Type},
-    read_fragment_ack, write_fragment_ack, CloseInboxStream, CloseInboxStreamAck, CloseWriteStream,
-    CloseWriteStreamAck, Inbox, MNSAccount, OpenNextInboxStreamAck, OpenReadStream,
-    OpenWriteStream, OpenWriteStreamAck, ReadFragment, ReadFragmentAck, SyncError, WriteFragment,
-    WriteFragmentAck,
-};
+use dimsp_types::*;
 use snowflake::SnowflakeIdGenerator;
 
 use crate::{
@@ -98,7 +90,7 @@ where
         let mut ack = OpenWriteStreamAck::new();
 
         if blob.next_fragment as usize == max_fragments {
-            ack.ack_type = Type::Noneed.into();
+            ack.ack_type = open_write_stream_ack::Type::Noneed.into();
 
             return Ok(ack);
         }
@@ -109,7 +101,7 @@ where
 
         self.blob_list.lock().unwrap().insert(stream_handle, blob);
 
-        ack.ack_type = Type::Accept.into();
+        ack.ack_type = open_write_stream_ack::Type::Accept.into();
 
         ack.next_fragment = next_fragment;
 
