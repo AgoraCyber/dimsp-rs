@@ -170,6 +170,15 @@ where
 
         let stream_handle = self.seq.lock().unwrap().real_time_generate() as u64;
 
+        /// Write inline fragment
+        if blob.next_fragment == 0 && open_write_stream.inline_stream.is_some() {
+            let mut fragment = open_write_stream.inline_stream.unwrap();
+
+            fragment.stream_handle = stream_handle;
+
+            self.write_fragment(fragment).await?;
+        }
+
         let next_fragment = blob.next_fragment;
 
         self.blob_list.lock().unwrap().insert(stream_handle, blob);

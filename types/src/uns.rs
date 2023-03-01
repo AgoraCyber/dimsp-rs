@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 /// MNS account information.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct UNSAccount {
     /// The nft id of **UNS contract**
     pub id: u64,

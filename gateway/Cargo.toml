@@ -20,9 +20,12 @@ anyhow = { workspace = true }
 # async 
 futures = { workspace = true, features = ["thread-pool"] }
 
-
 # ineternals
 dimsp-types = { workspace = true }
+
+# others 
+protobuf = { workspace = true }
+log = { workspace = true }
 
 
 [features]

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::{PublicKey, UNSAccount};
 
 /// MNS account information.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct MNSAccount {
     /// The nft id of **MNS contract**
     pub uns: UNSAccount,
@@ -33,4 +33,10 @@ pub enum MNSTypes {
     Multicast,
     ///  **MNS** SP account.
     ServiceProvider,
+}
+
+impl Default for MNSTypes {
+    fn default() -> Self {
+        Self::Unicast
+    }
 }

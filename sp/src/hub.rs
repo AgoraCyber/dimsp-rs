@@ -77,7 +77,7 @@ where
 }
 impl<G, N, S> DimspHub<G, N, S>
 where
-    G: DatagramGateway + Clone + Send + Sync + 'static,
+    G: DatagramGateway + Send + Sync + 'static,
     N: SpNetwork + Clone + Send + Sync + 'static,
     S: Storage + Clone + Send + Sync + 'static,
 {
@@ -98,22 +98,35 @@ where
     }
 }
 
+struct DimspHubSession<N, S> {
+    #[allow(unused)]
+    network: N,
+    storage: S,
+}
+
 impl<G, N, S> DimspHub<G, N, S>
 where
-    G: DatagramGateway + Clone + Send + Sync + 'static,
+    G: DatagramGateway + Send + Sync + 'static,
     N: SpNetwork + Clone + Send + Sync + 'static,
     S: Storage + Clone + Send + Sync + 'static,
 {
+    fn new_session(&self) -> DimspHubSession<N, S> {
+        DimspHubSession {
+            network: self.network.clone(),
+            storage: self.storage.clone(),
+        }
+    }
+
     /// [`DimspHub`] main event loop function.
     async fn event_loop(mut self) -> anyhow::Result<()> {
         while let Some(conn) = self.gateway.accept().await {
             log::debug!("loop {}", conn.id);
-            let hub = self.clone();
+            let session = self.new_session();
 
             _ = run_background(async move {
                 let conn_id = conn.id;
                 let uns_id = conn.context.uns.id;
-                match hub.handle_incoming_connection(conn).await {
+                match session.handle_incoming_connection::<G>(conn).await {
                     Ok(_) => {
                         log::info!("UNS({}) connection({}) closed", uns_id, conn_id);
                     }
@@ -133,14 +146,13 @@ where
     }
 }
 
-impl<G, N, S> DimspHub<G, N, S>
+impl<N, S> DimspHubSession<N, S>
 where
-    G: DatagramGateway + Clone + Send + 'static,
     N: SpNetwork + Clone + Send + 'static,
     S: Storage + Clone + Send + 'static,
 {
     /// Handle incoming user connection.
-    async fn handle_incoming_connection(
+    async fn handle_incoming_connection<G: DatagramGateway + Send + Sync + 'static>(
         mut self,
         mut conn: DatagramConnection<G::Context>,
     ) -> anyhow::Result<()> {
@@ -353,5 +365,43 @@ where
         response.set_write_fragment_ack(ack);
 
         Ok(response)
+    }
+}
+
+#[cfg(all(test, feature = "mock"))]
+mod tests {
+    use std::time::Duration;
+
+    use dimsp_gateway::mock::MockGateway;
+    use dimsp_spnetwork::mock::MockSpNetwork;
+    use dimsp_storage::mock::MockStorage;
+    use dimsp_types::MNSAccount;
+
+    use super::DimspHub;
+
+    #[async_std::test]
+    async fn test_write() {
+        _ = pretty_env_logger::try_init();
+
+        let (gateway, mut client) = MockGateway::new();
+
+        let storage = MockStorage::default();
+
+        let network = MockSpNetwork::default();
+
+        let hub = DimspHub::new(gateway, network, storage);
+
+        hub.start().unwrap();
+
+        // Create mock account
+        let mut account = MNSAccount::default();
+
+        account.uns.id = 100;
+        account.quota = 1024 * 1024 * 4;
+        account.lease = Duration::from_secs(10);
+
+        let mut session = client.connect_with(account).await.unwrap();
+
+        session.send_message("Hello world").await.unwrap();
     }
 }

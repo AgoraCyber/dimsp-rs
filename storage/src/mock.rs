@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 use async_trait::async_trait;
 use rand::{rngs::OsRng, RngCore};
@@ -9,16 +12,23 @@ use crate::{
     DimspStorage, StorageError,
 };
 use dimsp_types::*;
-
-pub struct MockTimeline {
+#[derive(Debug, Default, Clone)]
+struct MockTimelineImpl {
     timeline: HashMap<u64, Vec<Blob>>,
     client_read_offsets: HashMap<PublicKey, u64>,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct MockTimeline {
+    inner: Arc<Mutex<MockTimelineImpl>>,
 }
 
 #[async_trait]
 impl TimelineProvider for MockTimeline {
     async fn append(&mut self, blob: Blob) -> anyhow::Result<u64> {
-        match self.timeline.get_mut(&blob.mns.uns.id) {
+        let mut inner = self.inner.lock().unwrap();
+
+        match inner.timeline.get_mut(&blob.mns.uns.id) {
             Some(time_line) => {
                 time_line.push(blob);
                 return Ok(time_line.len() as u64);
@@ -26,23 +36,23 @@ impl TimelineProvider for MockTimeline {
             _ => {}
         }
 
-        self.timeline.insert(blob.mns.uns.id, vec![blob]);
+        inner.timeline.insert(blob.mns.uns.id, vec![blob]);
 
         Ok(1)
     }
 
     async fn get(&mut self, account: &MNSAccount) -> anyhow::Result<Option<Blob>> {
-        if !self.client_read_offsets.contains_key(&account.client_id) {
-            self.client_read_offsets
+        let mut inner = self.inner.lock().unwrap();
+
+        if !inner.client_read_offsets.contains_key(&account.client_id) {
+            inner
+                .client_read_offsets
                 .insert(account.client_id.clone(), 0);
         }
 
-        let offset = self
-            .client_read_offsets
-            .get_mut(&account.client_id)
-            .unwrap();
+        let offset = inner.client_read_offsets.get(&account.client_id).unwrap();
 
-        match self.timeline.get(&account.uns.id) {
+        match inner.timeline.get(&account.uns.id) {
             Some(time_line) => {
                 if (*offset as usize) < time_line.len() {
                     return Ok(time_line.first().map(|b| b.clone()));
@@ -55,10 +65,12 @@ impl TimelineProvider for MockTimeline {
     }
 
     async fn pop(&mut self, account: &MNSAccount) -> anyhow::Result<()> {
-        if !self.client_read_offsets.contains_key(&account.client_id) {
+        let mut inner = self.inner.lock().unwrap();
+
+        if !inner.client_read_offsets.contains_key(&account.client_id) {
             return Ok(());
         }
-        let offset = self
+        let offset = inner
             .client_read_offsets
             .get_mut(&account.client_id)
             .unwrap();
@@ -69,17 +81,17 @@ impl TimelineProvider for MockTimeline {
     }
 
     async fn status(&mut self, account: &MNSAccount) -> anyhow::Result<Inbox> {
-        if !self.client_read_offsets.contains_key(&account.client_id) {
-            self.client_read_offsets
+        let mut inner = self.inner.lock().unwrap();
+
+        if !inner.client_read_offsets.contains_key(&account.client_id) {
+            inner
+                .client_read_offsets
                 .insert(account.client_id.clone(), 0);
         }
 
-        let offset = self
-            .client_read_offsets
-            .get_mut(&account.client_id)
-            .unwrap();
+        let offset = inner.client_read_offsets.get(&account.client_id).unwrap();
 
-        match self.timeline.get(&account.uns.id) {
+        match inner.timeline.get(&account.uns.id) {
             Some(time_line) => {
                 if (*offset as usize) < time_line.len() {
                     let mut inbox = Inbox::new();
@@ -103,12 +115,16 @@ impl TimelineProvider for MockTimeline {
         Ok(Inbox::new())
     }
 }
-
-#[derive(Default)]
-pub struct MockBlob {
+#[derive(Default, Clone)]
+struct MockBlobImpl {
     memory: HashMap<[u8; 32], Vec<Vec<u8>>>,
     fragments: HashMap<[u8; 32], Vec<Hash32>>,
     quotas: HashMap<u64, u64>,
+}
+
+#[derive(Default, Clone)]
+pub struct MockBlob {
+    inner: Arc<Mutex<MockBlobImpl>>,
 }
 
 #[async_trait]
@@ -119,7 +135,9 @@ impl BlobProvider for MockBlob {
         length: u64,
         fragment_hashes: Vec<Hash32>,
     ) -> anyhow::Result<Blob> {
-        let quota = match self.quotas.get(&mns.uns.id) {
+        let mut inner = self.inner.lock().unwrap();
+
+        let quota = match inner.quotas.get(&mns.uns.id) {
             Some(quota) => {
                 if *quota + length > mns.quota {
                     return Err(StorageError::Quotas((*quota + length - mns.quota) as usize).into());
@@ -130,13 +148,13 @@ impl BlobProvider for MockBlob {
             None => length,
         };
 
-        self.quotas.insert(mns.uns.id, quota);
+        inner.quotas.insert(mns.uns.id, quota);
 
         let mut id = [0; 32];
 
         OsRng.fill_bytes(&mut id);
 
-        self.memory.insert(id, vec![]);
+        inner.memory.insert(id, vec![]);
 
         Ok(Blob {
             id,
@@ -154,7 +172,9 @@ impl BlobProvider for MockBlob {
         offset: u64,
         data: Vec<u8>,
     ) -> anyhow::Result<()> {
-        let fragment_hashes = self
+        let mut inner = self.inner.lock().unwrap();
+
+        let fragment_hashes = inner
             .fragments
             .get(id)
             .ok_or(StorageError::BlobNotFound(id.to_owned()))?;
@@ -172,7 +192,7 @@ impl BlobProvider for MockBlob {
             return Err(StorageError::FragmentHash(expect_hash, calc_hash).into());
         }
 
-        match self.memory.get_mut(id) {
+        match inner.memory.get_mut(id) {
             Some(buff) => {
                 if offset as usize != buff.len() {
                     return Err(StorageError::FragmentOffset(buff.len(), offset as usize).into());
@@ -197,14 +217,18 @@ impl BlobProvider for MockBlob {
     /// Operation may or may not release blob referenced by id,
     /// this depend on how many id reference to this blob
     async fn remove_blob(&mut self, id: &[u8; 32]) -> anyhow::Result<()> {
-        self.fragments.remove(id);
-        self.memory.remove(id);
+        let mut inner = self.inner.lock().unwrap();
+
+        inner.fragments.remove(id);
+        inner.memory.remove(id);
 
         Ok(())
     }
 
     async fn start_read_blob(&mut self, id: &[u8; 32]) -> anyhow::Result<()> {
-        _ = self
+        let inner = self.inner.lock().unwrap();
+
+        _ = inner
             .fragments
             .get(id)
             .ok_or(StorageError::BlobNotFound(id.to_owned()))?;
@@ -213,7 +237,8 @@ impl BlobProvider for MockBlob {
     }
 
     async fn read_blob_fragment(&mut self, id: &[u8; 32], offset: u64) -> anyhow::Result<Vec<u8>> {
-        let fragment_hashes = self
+        let inner = self.inner.lock().unwrap();
+        let fragment_hashes = inner
             .fragments
             .get(id)
             .ok_or(StorageError::BlobNotFound(id.to_owned()))?;
@@ -224,7 +249,7 @@ impl BlobProvider for MockBlob {
             );
         }
 
-        match self.memory.get(id) {
+        match inner.memory.get(id) {
             Some(buff) => {
                 if offset as usize != buff.len() {
                     return Err(StorageError::FragmentOffset(buff.len(), offset as usize).into());
@@ -241,3 +266,9 @@ impl BlobProvider for MockBlob {
 
 /// Define mock storage structure.
 pub type MockStorage = DimspStorage<MockTimeline, MockBlob>;
+
+impl Default for MockStorage {
+    fn default() -> Self {
+        DimspStorage::new(0, Default::default(), Default::default())
+    }
+}

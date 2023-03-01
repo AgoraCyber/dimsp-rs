@@ -30,6 +30,12 @@ pub enum PublicKey {
     ECDSA(PublicKeyBuff<33>),
 }
 
+impl Default for PublicKey {
+    fn default() -> Self {
+        Self::ECDSA(Default::default())
+    }
+}
+
 impl Display for PublicKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -54,6 +60,12 @@ impl Display for PublicKey {
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct PublicKeyBuff<const LEN: usize>(pub [u8; LEN]);
+
+impl<const LEN: usize> Default for PublicKeyBuff<LEN> {
+    fn default() -> Self {
+        Self([0u8; LEN])
+    }
+}
 
 impl<const LEN: usize> Display for PublicKeyBuff<LEN> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

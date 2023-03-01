@@ -40,4 +40,5 @@ pretty_env_logger = { workspace = true }
 
 
 [features]
-mock = ["dimsp-gateway/mock"]
+default = ["mock"]
+mock = ["dimsp-gateway/mock", "dimsp-spnetwork/mock", "dimsp-storage/mock"]
