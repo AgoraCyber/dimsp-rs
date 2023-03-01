@@ -1,9 +1,10 @@
+use dimsp_spnetwork::SpNetwork;
 use dimsp_types::{sync_message::Type, MNSAccount, SyncMessage};
 use futures::{task::SpawnError, SinkExt, TryStreamExt};
 
 use thiserror::Error;
 
-use crate::{sp_network::SpNetwork, threadpool::run_background};
+use crate::threadpool::run_background;
 
 use dimsp_gateway::*;
 use dimsp_storage::Storage;

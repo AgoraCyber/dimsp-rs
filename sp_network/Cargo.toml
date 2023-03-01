@@ -1,0 +1,31 @@
+[package]
+name = "dimsp-spnetwork"
+license-file.workspace = true
+edition.workspace = true
+version.workspace = true
+description = "Dimsp sp network inspector"
+documentation = "https://docs.rs/dimsp-spnetwork"
+
+[dependencies]
+# serde support
+serde = { workspace = true }
+
+# error
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# async 
+async-trait = { workspace = true }
+futures = { workspace = true, features = ["thread-pool"] }
+
+# others
+bytes = { workspace = true }
+log = { workspace = true }
+protobuf = { workspace = true }
+
+#internals
+dimsp-types = { workspace = true }
+
+
+[features]
+mock = []

@@ -29,6 +29,7 @@ once_cell = { workspace = true }
 protobuf = { workspace = true }
 
 dimsp-types = { workspace = true }
+dimsp-spnetwork = { workspace = true }
 dimsp-storage = { workspace = true }
 dimsp-gateway = { workspace = true }
 
