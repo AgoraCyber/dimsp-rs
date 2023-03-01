@@ -1,13 +1,12 @@
 use dimsp_types::{
-    keccack256, open_write_stream_ack, sync_message, write_fragment_ack, CloseWriteStream, Hash32,
-    MNSAccount, OpenWriteStream, SyncError, SyncMessage, WriteFragment,
+    keccack256, open_write_stream_ack, sync_message, write_fragment_ack, Hash32, IdGenerator,
+    MNSAccount, SyncError, SyncMessage, SyncMessageBuilder, WriteFragment,
 };
 use futures::{
     channel::mpsc::{self, SendError},
     stream::BoxStream,
     Future, SinkExt, StreamExt,
 };
-use protobuf::MessageField;
 
 use crate::{DatagramConnection, DatagramContext, DatagramGateway};
 
@@ -26,6 +25,7 @@ impl DatagramContext for MockDatagramContext {
 }
 
 pub struct MockSession {
+    id_gen: IdGenerator,
     conn: DatagramConnection<MockDatagramContext>,
 }
 
@@ -33,6 +33,7 @@ impl MockSession {
     /// Send message
     pub async fn send_message<B: AsRef<[u8]>>(
         &mut self,
+        to: u64,
         buff: B,
         fragment_len: usize,
     ) -> anyhow::Result<()> {
@@ -66,24 +67,25 @@ impl MockSession {
 
         log::debug!("Open write stream, fragments({})", fragments.len());
 
-        let mut message = SyncMessage::new();
-        message.type_ = sync_message::Type::OpenWriteStream.into();
-        message.id = 1;
+        let message = if fragments.len() == 1 {
+            SyncMessageBuilder::build(&mut self.id_gen).open_write_stream(
+                buff.len() as u64,
+                to,
+                0,
+                fragment_hashes,
+                fragments.pop(),
+            )
+        } else {
+            SyncMessageBuilder::build(&mut self.id_gen).open_write_stream(
+                buff.len() as u64,
+                to,
+                0,
+                fragment_hashes,
+                None,
+            )
+        };
 
-        let mut content = OpenWriteStream::new();
-
-        content.length = buff.len() as u64;
-        content.offset = 0;
-        content.fragment_hashes = fragment_hashes;
-
-        if fragments.len() == 1 {
-            content.inline_stream = MessageField::from_option(fragments.pop());
-        }
-
-        message.set_open_write_stream(content);
-
-        self.conn.send(message).await?;
-        let ack = self.recv_ack(1).await?;
+        let ack = self.request(message).await?;
 
         log::debug!("Open write stream, ack: {}", ack);
 
@@ -116,14 +118,9 @@ impl MockSession {
 
             log::debug!("Write fragment({}) {}", index, fragment);
 
-            let mut message = SyncMessage::new();
-            message.type_ = sync_message::Type::WriteFragment.into();
-            message.id = 1 + index as u64;
-            message.set_write_fragment(fragment);
+            let message = SyncMessageBuilder::build(&mut self.id_gen).from_write_fragment(fragment);
 
-            self.conn.send(message).await?;
-
-            let ack = self.recv_ack(1 + index as u64).await?;
+            let ack = self.request(message).await?;
 
             assert_eq!(ack.type_, sync_message::Type::WriteFragmentAck.into());
 
@@ -144,18 +141,9 @@ impl MockSession {
 
         log::debug!("Close write stream");
 
-        let mut content = CloseWriteStream::new();
+        let message = SyncMessageBuilder::build(&mut self.id_gen).close_write_stream(stream_handle);
 
-        content.stream_handle = stream_handle;
-
-        let mut message = SyncMessage::new();
-        message.type_ = sync_message::Type::CloseWriteStream.into();
-        message.id = (1 + max_index) as u64;
-        message.set_close_write_stream(content);
-
-        self.conn.send(message).await?;
-
-        let ack = self.recv_ack(1 + max_index as u64).await?;
+        let ack = self.request(message).await?;
 
         assert_eq!(ack.type_, sync_message::Type::CloseWriteStreamAck.into());
         assert_eq!(
@@ -164,6 +152,14 @@ impl MockSession {
         );
 
         Ok(())
+    }
+
+    async fn request(&mut self, message: SyncMessage) -> anyhow::Result<SyncMessage> {
+        let id = message.id;
+
+        self.conn.send(message).await?;
+
+        self.recv_ack(id).await
     }
     async fn recv_ack(&mut self, id: u64) -> anyhow::Result<SyncMessage> {
         let msg = self
@@ -210,7 +206,10 @@ impl MockClient {
 
         self.sender.send(server_conn).await?;
 
-        Ok(MockSession { conn: client_conn })
+        Ok(MockSession {
+            conn: client_conn,
+            id_gen: Default::default(),
+        })
     }
 }
 

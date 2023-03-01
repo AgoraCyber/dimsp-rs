@@ -380,7 +380,7 @@ mod tests {
     use super::DimspHub;
 
     #[async_std::test]
-    async fn test_write() {
+    async fn test_send_message() {
         _ = pretty_env_logger::try_init();
 
         let (gateway, mut client) = MockGateway::new();
@@ -402,6 +402,6 @@ mod tests {
 
         let mut session = client.connect_with(account).await.unwrap();
 
-        session.send_message("Hello world", 2).await.unwrap();
+        session.send_message(20, "Hello world", 2).await.unwrap();
     }
 }
