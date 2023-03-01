@@ -26,6 +26,11 @@ log = { workspace = true }
 once_cell = { workspace = true }
 rs-snowflake = { workspace = true }
 protobuf = { workspace = true }
+rand = { workspace = true }
 
 #internals
 dimsp-types = { workspace = true }
+
+
+[features]
+mock = []

@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use async_trait::async_trait;
 use dimsp_types::{Hash32, MNSAccount};
 
@@ -48,8 +46,6 @@ pub struct Blob {
     pub length: u64,
     /// blob hashes
     pub fragment_hashes: Vec<Hash32>,
-    /// Blob longest lease
-    pub lease: Duration,
     /// If next_fragment == fragment count, don't need call write_blob_fragment and end_blob any more.
     pub next_fragment: u64,
 }

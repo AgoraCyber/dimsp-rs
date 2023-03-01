@@ -19,7 +19,12 @@ hex = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 
+# async
 async-trait = { workspace = true }
+
+
+# crypto
+sha3 = { workspace = true }
 
 [build-dependencies]
 protobuf-codegen = { workspace = true }

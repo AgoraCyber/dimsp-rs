@@ -34,19 +34,19 @@ impl Display for PublicKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::RSA1024(value) => {
-                write!(f, "{}", value)
+                write!(f, "RSA1024: {}", value)
             }
             Self::RSA2048(value) => {
-                write!(f, "{}", value)
+                write!(f, "RSA2048: {}", value)
             }
             Self::RSA4096(value) => {
-                write!(f, "{}", value)
+                write!(f, "RSA4096: {}", value)
             }
             Self::Ed25519(value) => {
-                write!(f, "{}", value)
+                write!(f, "Ed25519: {}", value)
             }
             Self::ECDSA(value) => {
-                write!(f, "{}", value)
+                write!(f, "ECDSA: {}", value)
             }
         }
     }

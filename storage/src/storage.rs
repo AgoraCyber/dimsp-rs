@@ -20,10 +20,21 @@ pub enum StorageError {
     #[error(
         "Quotas: the account don't have enough quota to write stream, required extra {0} bytes."
     )]
-    QuotasError(usize),
+    Quotas(usize),
     /// Returns if the account reach the end of the inbox reading
     #[error("Nomore: the mns account reach the end of the inbox reading.")]
-    NomoreError(MNSAccount),
+    Nomore(MNSAccount),
+    #[error("FragmentError: expect fragment({0}) but got fragment({1})")]
+    FragmentOffset(usize, usize),
+
+    #[error("FragmentError: fragment hash mismatch expect: {0}, got: {1}")]
+    FragmentHash(Hash32, Hash32),
+
+    #[error("FragmentError: fragment({0}) out of range, max offset is {1}")]
+    FragmentOutOfRange(usize, usize),
+
+    #[error("BlobNotFound: blob not found, {0:?}")]
+    BlobNotFound([u8; 32]),
 }
 
 /// Sync stream with persistence support.
@@ -135,7 +146,7 @@ where
         let blob = match blob {
             Ok(blob) => blob,
             Err(err) => match err.downcast_ref() {
-                Some(StorageError::QuotasError(quota)) => {
+                Some(StorageError::Quotas(quota)) => {
                     let mut ack = OpenWriteStreamAck::new();
 
                     ack.ack_type = open_write_stream_ack::Type::Reject.into();
@@ -338,7 +349,7 @@ where
         self.blob.end_write_blob(&blob.id).await?;
 
         if close_inbox_stream.mark_as_read {
-            self.timeline.pop(&blob.mns, &blob.id).await?;
+            self.timeline.pop(&blob.mns).await?;
         }
 
         let mut ack = CloseInboxStreamAck::new();

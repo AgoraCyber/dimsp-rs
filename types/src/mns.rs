@@ -19,6 +19,8 @@ pub struct MNSAccount {
     pub quota: u64,
     /// Account storage data lease duration
     pub lease: Duration,
+    /// Using client local public key as client_id
+    pub client_id: PublicKey,
 }
 
 /// MNS account types enum
