@@ -140,10 +140,11 @@ message CloseWriteStreamAck {
 
 /// Syc protocol errors.
 enum SyncError {
+    Success = 0;
     /// The account storage quota is not enough to store whole stream.
-    Quota = 0;
+    Quota = 1;
     /// Resource not found
-    Resource = 1;
+    Resource = 2;
 }
 
 // 32 bytes hash message
@@ -168,6 +169,7 @@ message WriteFragmentAck {
     enum Type {
         Continue = 0;
         Break = 1;
+        Nomore = 2;
     }
     /// Ack type.
     Type ack_type = 1;

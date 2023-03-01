@@ -33,7 +33,7 @@ pub enum StorageError {
     #[error("FragmentError: fragment({0}) out of range, max offset is {1}")]
     FragmentOutOfRange(usize, usize),
 
-    #[error("BlobNotFound: blob not found, {0:?}")]
+    #[error("BlobNotFound: blob not found, {0:x?}")]
     BlobNotFound([u8; 32]),
 }
 
@@ -177,13 +177,15 @@ where
             fragment.stream_handle = stream_handle;
 
             self.write_fragment(fragment).await?;
+
+            ack.ack_type = open_write_stream_ack::Type::Noneed.into();
+        } else {
+            ack.ack_type = open_write_stream_ack::Type::Accept.into();
         }
 
         let next_fragment = blob.next_fragment;
 
         self.blob_list.lock().unwrap().insert(stream_handle, blob);
-
-        ack.ack_type = open_write_stream_ack::Type::Accept.into();
 
         ack.next_fragment = next_fragment;
 
@@ -222,7 +224,11 @@ where
 
         let mut ack = WriteFragmentAck::new();
 
-        ack.ack_type = write_fragment_ack::Type::Continue.into();
+        if blob.fragment_hashes.len() == (write_fragment.offset + 1) as usize {
+            ack.ack_type = write_fragment_ack::Type::Nomore.into();
+        } else {
+            ack.ack_type = write_fragment_ack::Type::Continue.into();
+        }
 
         ack.stream_handle = write_fragment.stream_handle;
         ack.offset = write_fragment.offset;

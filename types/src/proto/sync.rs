@@ -1348,7 +1348,7 @@ impl ::protobuf::Message for CloseInboxStreamAck {
         if self.stream_handle != 0 {
             my_size += ::protobuf::rt::uint64_size(1, self.stream_handle);
         }
-        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Quota) {
+        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Success) {
             my_size += ::protobuf::rt::int32_size(2, self.sync_error.value());
         }
         my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
@@ -1360,7 +1360,7 @@ impl ::protobuf::Message for CloseInboxStreamAck {
         if self.stream_handle != 0 {
             os.write_uint64(1, self.stream_handle)?;
         }
-        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Quota) {
+        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Success) {
             os.write_enum(2, ::protobuf::EnumOrUnknown::value(&self.sync_error))?;
         }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
@@ -1381,7 +1381,7 @@ impl ::protobuf::Message for CloseInboxStreamAck {
 
     fn clear(&mut self) {
         self.stream_handle = 0;
-        self.sync_error = ::protobuf::EnumOrUnknown::new(SyncError::Quota);
+        self.sync_error = ::protobuf::EnumOrUnknown::new(SyncError::Success);
         self.special_fields.clear();
     }
 
@@ -1502,7 +1502,7 @@ impl ::protobuf::Message for OpenNextInboxStreamAck {
             let len = v.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
         }
-        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Quota) {
+        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Success) {
             my_size += ::protobuf::rt::int32_size(3, self.sync_error.value());
         }
         my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
@@ -1517,7 +1517,7 @@ impl ::protobuf::Message for OpenNextInboxStreamAck {
         if let Some(v) = self.read_stream.as_ref() {
             ::protobuf::rt::write_message_field_with_cached_size(2, v, os)?;
         }
-        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Quota) {
+        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Success) {
             os.write_enum(3, ::protobuf::EnumOrUnknown::value(&self.sync_error))?;
         }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
@@ -1539,7 +1539,7 @@ impl ::protobuf::Message for OpenNextInboxStreamAck {
     fn clear(&mut self) {
         self.type_ = ::protobuf::EnumOrUnknown::new(open_next_inbox_stream_ack::Type::Accept);
         self.read_stream.clear();
-        self.sync_error = ::protobuf::EnumOrUnknown::new(SyncError::Quota);
+        self.sync_error = ::protobuf::EnumOrUnknown::new(SyncError::Success);
         self.special_fields.clear();
     }
 
@@ -2050,7 +2050,7 @@ impl ::protobuf::Message for ReadFragmentAck {
         if !self.content.is_empty() {
             my_size += ::protobuf::rt::bytes_size(4, &self.content);
         }
-        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Quota) {
+        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Success) {
             my_size += ::protobuf::rt::int32_size(5, self.sync_error.value());
         }
         my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
@@ -2071,7 +2071,7 @@ impl ::protobuf::Message for ReadFragmentAck {
         if !self.content.is_empty() {
             os.write_bytes(4, &self.content)?;
         }
-        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Quota) {
+        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Success) {
             os.write_enum(5, ::protobuf::EnumOrUnknown::value(&self.sync_error))?;
         }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
@@ -2095,7 +2095,7 @@ impl ::protobuf::Message for ReadFragmentAck {
         self.stream_handle = 0;
         self.offset = 0;
         self.content.clear();
-        self.sync_error = ::protobuf::EnumOrUnknown::new(SyncError::Quota);
+        self.sync_error = ::protobuf::EnumOrUnknown::new(SyncError::Success);
         self.special_fields.clear();
     }
 
@@ -2484,7 +2484,7 @@ impl ::protobuf::Message for OpenWriteStreamAck {
         if self.next_fragment != 0 {
             my_size += ::protobuf::rt::uint64_size(3, self.next_fragment);
         }
-        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Quota) {
+        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Success) {
             my_size += ::protobuf::rt::int32_size(4, self.sync_error.value());
         }
         my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
@@ -2502,7 +2502,7 @@ impl ::protobuf::Message for OpenWriteStreamAck {
         if self.next_fragment != 0 {
             os.write_uint64(3, self.next_fragment)?;
         }
-        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Quota) {
+        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Success) {
             os.write_enum(4, ::protobuf::EnumOrUnknown::value(&self.sync_error))?;
         }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
@@ -2525,7 +2525,7 @@ impl ::protobuf::Message for OpenWriteStreamAck {
         self.ack_type = ::protobuf::EnumOrUnknown::new(open_write_stream_ack::Type::Accept);
         self.stream_handle = 0;
         self.next_fragment = 0;
-        self.sync_error = ::protobuf::EnumOrUnknown::new(SyncError::Quota);
+        self.sync_error = ::protobuf::EnumOrUnknown::new(SyncError::Success);
         self.special_fields.clear();
     }
 
@@ -2804,7 +2804,7 @@ impl ::protobuf::Message for CloseWriteStreamAck {
     #[allow(unused_variables)]
     fn compute_size(&self) -> u64 {
         let mut my_size = 0;
-        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Quota) {
+        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Success) {
             my_size += ::protobuf::rt::int32_size(2, self.sync_error.value());
         }
         my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
@@ -2813,7 +2813,7 @@ impl ::protobuf::Message for CloseWriteStreamAck {
     }
 
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
-        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Quota) {
+        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Success) {
             os.write_enum(2, ::protobuf::EnumOrUnknown::value(&self.sync_error))?;
         }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
@@ -2833,7 +2833,7 @@ impl ::protobuf::Message for CloseWriteStreamAck {
     }
 
     fn clear(&mut self) {
-        self.sync_error = ::protobuf::EnumOrUnknown::new(SyncError::Quota);
+        self.sync_error = ::protobuf::EnumOrUnknown::new(SyncError::Success);
         self.special_fields.clear();
     }
 
@@ -3299,7 +3299,7 @@ impl ::protobuf::Message for WriteFragmentAck {
         if self.offset != 0 {
             my_size += ::protobuf::rt::uint64_size(3, self.offset);
         }
-        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Quota) {
+        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Success) {
             my_size += ::protobuf::rt::int32_size(4, self.sync_error.value());
         }
         my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
@@ -3317,7 +3317,7 @@ impl ::protobuf::Message for WriteFragmentAck {
         if self.offset != 0 {
             os.write_uint64(3, self.offset)?;
         }
-        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Quota) {
+        if self.sync_error != ::protobuf::EnumOrUnknown::new(SyncError::Success) {
             os.write_enum(4, ::protobuf::EnumOrUnknown::value(&self.sync_error))?;
         }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
@@ -3340,7 +3340,7 @@ impl ::protobuf::Message for WriteFragmentAck {
         self.ack_type = ::protobuf::EnumOrUnknown::new(write_fragment_ack::Type::Continue);
         self.stream_handle = 0;
         self.offset = 0;
-        self.sync_error = ::protobuf::EnumOrUnknown::new(SyncError::Quota);
+        self.sync_error = ::protobuf::EnumOrUnknown::new(SyncError::Success);
         self.special_fields.clear();
     }
 
@@ -3382,6 +3382,8 @@ pub mod write_fragment_ack {
         Continue = 0,
         // @@protoc_insertion_point(enum_value:WriteFragmentAck.Type.Break)
         Break = 1,
+        // @@protoc_insertion_point(enum_value:WriteFragmentAck.Type.Nomore)
+        Nomore = 2,
     }
 
     impl ::protobuf::Enum for Type {
@@ -3395,6 +3397,7 @@ pub mod write_fragment_ack {
             match value {
                 0 => ::std::option::Option::Some(Type::Continue),
                 1 => ::std::option::Option::Some(Type::Break),
+                2 => ::std::option::Option::Some(Type::Nomore),
                 _ => ::std::option::Option::None
             }
         }
@@ -3402,6 +3405,7 @@ pub mod write_fragment_ack {
         const VALUES: &'static [Type] = &[
             Type::Continue,
             Type::Break,
+            Type::Nomore,
         ];
     }
 
@@ -3573,10 +3577,12 @@ impl ::protobuf::reflect::ProtobufValue for Inbox {
 #[derive(Clone,Copy,PartialEq,Eq,Debug,Hash)]
 // @@protoc_insertion_point(enum:SyncError)
 pub enum SyncError {
+    // @@protoc_insertion_point(enum_value:SyncError.Success)
+    Success = 0,
     // @@protoc_insertion_point(enum_value:SyncError.Quota)
-    Quota = 0,
+    Quota = 1,
     // @@protoc_insertion_point(enum_value:SyncError.Resource)
-    Resource = 1,
+    Resource = 2,
 }
 
 impl ::protobuf::Enum for SyncError {
@@ -3588,13 +3594,15 @@ impl ::protobuf::Enum for SyncError {
 
     fn from_i32(value: i32) -> ::std::option::Option<SyncError> {
         match value {
-            0 => ::std::option::Option::Some(SyncError::Quota),
-            1 => ::std::option::Option::Some(SyncError::Resource),
+            0 => ::std::option::Option::Some(SyncError::Success),
+            1 => ::std::option::Option::Some(SyncError::Quota),
+            2 => ::std::option::Option::Some(SyncError::Resource),
             _ => ::std::option::Option::None
         }
     }
 
     const VALUES: &'static [SyncError] = &[
+        SyncError::Success,
         SyncError::Quota,
         SyncError::Resource,
     ];
@@ -3614,7 +3622,7 @@ impl ::protobuf::EnumFull for SyncError {
 
 impl ::std::default::Default for SyncError {
     fn default() -> Self {
-        SyncError::Quota
+        SyncError::Success
     }
 }
 
@@ -3688,15 +3696,15 @@ static file_descriptor_proto_data: &'static [u8] = b"\
     3\x12\x0e\n\x02h4\x18\x04\x20\x01(\x04R\x02h4\"f\n\rWriteFragment\x12#\n\
     \rstream_handle\x18\x01\x20\x01(\x04R\x0cstreamHandle\x12\x16\n\x06offse\
     t\x18\x02\x20\x01(\x04R\x06offset\x12\x18\n\x07content\x18\x04\x20\x01(\
-    \x0cR\x07content\"\xce\x01\n\x10WriteFragmentAck\x121\n\x08ack_type\x18\
+    \x0cR\x07content\"\xda\x01\n\x10WriteFragmentAck\x121\n\x08ack_type\x18\
     \x01\x20\x01(\x0e2\x16.WriteFragmentAck.TypeR\x07ackType\x12#\n\rstream_\
     handle\x18\x02\x20\x01(\x04R\x0cstreamHandle\x12\x16\n\x06offset\x18\x03\
     \x20\x01(\x04R\x06offset\x12)\n\nsync_error\x18\x04\x20\x01(\x0e2\n.Sync\
-    ErrorR\tsyncError\"\x1f\n\x04Type\x12\x0c\n\x08Continue\x10\0\x12\t\n\
-    \x05Break\x10\x01\"B\n\x05Inbox\x12\x16\n\x06unread\x18\x01\x20\x01(\x04\
-    R\x06unread\x12!\n\x0ctotal_length\x18\x02\x20\x01(\x04R\x0btotalLength*\
-    $\n\tSyncError\x12\t\n\x05Quota\x10\0\x12\x0c\n\x08Resource\x10\x01b\x06\
-    proto3\
+    ErrorR\tsyncError\"+\n\x04Type\x12\x0c\n\x08Continue\x10\0\x12\t\n\x05Br\
+    eak\x10\x01\x12\n\n\x06Nomore\x10\x02\"B\n\x05Inbox\x12\x16\n\x06unread\
+    \x18\x01\x20\x01(\x04R\x06unread\x12!\n\x0ctotal_length\x18\x02\x20\x01(\
+    \x04R\x0btotalLength*1\n\tSyncError\x12\x0b\n\x07Success\x10\0\x12\t\n\
+    \x05Quota\x10\x01\x12\x0c\n\x08Resource\x10\x02b\x06proto3\
 ";
 
 /// `FileDescriptorProto` object which was a source for this generated file

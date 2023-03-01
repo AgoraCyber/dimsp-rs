@@ -1,5 +1,6 @@
 use dimsp_types::{
-    keccack256, sync_message, MNSAccount, OpenWriteStream, SyncMessage, WriteFragment,
+    keccack256, open_write_stream_ack, sync_message, write_fragment_ack, CloseWriteStream, Hash32,
+    MNSAccount, OpenWriteStream, SyncError, SyncMessage, WriteFragment,
 };
 use futures::{
     channel::mpsc::{self, SendError},
@@ -9,8 +10,6 @@ use futures::{
 use protobuf::MessageField;
 
 use crate::{DatagramConnection, DatagramContext, DatagramGateway};
-
-const MAX_FRAGMENT_LEN: usize = 1024 * 1024 * 4;
 
 pub struct MockDatagramContext;
 
@@ -32,23 +31,28 @@ pub struct MockSession {
 
 impl MockSession {
     /// Send message
-    pub async fn send_message<B: AsRef<[u8]>>(&mut self, buff: B) -> anyhow::Result<()> {
+    pub async fn send_message<B: AsRef<[u8]>>(
+        &mut self,
+        buff: B,
+        fragment_len: usize,
+    ) -> anyhow::Result<()> {
         // prepare send messages
         let buff = buff.as_ref();
 
-        let split_count = if buff.len() % MAX_FRAGMENT_LEN == 0 {
-            buff.len() / MAX_FRAGMENT_LEN
+        let split_count = if buff.len() % fragment_len == 0 {
+            buff.len() / fragment_len
         } else {
-            buff.len() / MAX_FRAGMENT_LEN + 1
+            buff.len() / fragment_len + 1
         };
 
         let mut fragments = vec![];
+        let mut fragment_hashes: Vec<Hash32> = vec![];
 
         for i in 1..=split_count {
-            let buff = if i * MAX_FRAGMENT_LEN > buff.len() {
-                &buff[(i - 1) * MAX_FRAGMENT_LEN..]
+            let buff = if i * fragment_len > buff.len() {
+                &buff[(i - 1) * fragment_len..]
             } else {
-                &buff[(i - 1) * MAX_FRAGMENT_LEN..i * MAX_FRAGMENT_LEN]
+                &buff[(i - 1) * fragment_len..i * fragment_len]
             };
 
             let mut write_fragment = WriteFragment::new();
@@ -57,7 +61,10 @@ impl MockSession {
             write_fragment.content = buff.to_vec();
 
             fragments.push(write_fragment);
+            fragment_hashes.push(keccack256(buff).into());
         }
+
+        log::debug!("Open write stream, fragments({})", fragments.len());
 
         let mut message = SyncMessage::new();
         message.type_ = sync_message::Type::OpenWriteStream.into();
@@ -67,9 +74,9 @@ impl MockSession {
 
         content.length = buff.len() as u64;
         content.offset = 0;
-        content.fragment_hashes = vec![keccack256(buff).into()];
+        content.fragment_hashes = fragment_hashes;
 
-        if fragments.len() == 0 {
+        if fragments.len() == 1 {
             content.inline_stream = MessageField::from_option(fragments.pop());
         }
 
@@ -78,7 +85,83 @@ impl MockSession {
         self.conn.send(message).await?;
         let ack = self.recv_ack(1).await?;
 
-        log::debug!("recv {}", ack);
+        log::debug!("Open write stream, ack: {}", ack);
+
+        assert_eq!(ack.type_, sync_message::Type::OpenWriteStreamAck.into());
+
+        if fragments.is_empty() {
+            assert_eq!(
+                ack.open_write_stream_ack().ack_type,
+                open_write_stream_ack::Type::Noneed.into()
+            );
+        } else {
+            assert_eq!(
+                ack.open_write_stream_ack().ack_type,
+                open_write_stream_ack::Type::Accept.into()
+            );
+        }
+
+        let next_fragment = ack.open_write_stream_ack().next_fragment;
+        let stream_handle = ack.open_write_stream_ack().stream_handle;
+
+        let max_index = fragments.len();
+
+        for (index, mut fragment) in fragments.into_iter().enumerate() {
+            if index < next_fragment as usize {
+                continue;
+            }
+
+            fragment.stream_handle = stream_handle;
+            fragment.offset = index as u64;
+
+            log::debug!("Write fragment({}) {}", index, fragment);
+
+            let mut message = SyncMessage::new();
+            message.type_ = sync_message::Type::WriteFragment.into();
+            message.id = 1 + index as u64;
+            message.set_write_fragment(fragment);
+
+            self.conn.send(message).await?;
+
+            let ack = self.recv_ack(1 + index as u64).await?;
+
+            assert_eq!(ack.type_, sync_message::Type::WriteFragmentAck.into());
+
+            if index + 1 == max_index {
+                assert_eq!(
+                    ack.write_fragment_ack().ack_type,
+                    write_fragment_ack::Type::Nomore.into()
+                );
+            } else {
+                assert_eq!(
+                    ack.write_fragment_ack().ack_type,
+                    write_fragment_ack::Type::Continue.into()
+                );
+            }
+
+            log::debug!("Write fragment({}), ack: {}", index as u64, ack);
+        }
+
+        log::debug!("Close write stream");
+
+        let mut content = CloseWriteStream::new();
+
+        content.stream_handle = stream_handle;
+
+        let mut message = SyncMessage::new();
+        message.type_ = sync_message::Type::CloseWriteStream.into();
+        message.id = (1 + max_index) as u64;
+        message.set_close_write_stream(content);
+
+        self.conn.send(message).await?;
+
+        let ack = self.recv_ack(1 + max_index as u64).await?;
+
+        assert_eq!(ack.type_, sync_message::Type::CloseWriteStreamAck.into());
+        assert_eq!(
+            ack.close_write_stream_ack().sync_error,
+            SyncError::Success.into()
+        );
 
         Ok(())
     }
@@ -88,6 +171,8 @@ impl MockSession {
             .try_next()
             .await?
             .ok_or(anyhow::format_err!("broken piple"))?;
+
+        log::debug!("msg id {}, expect {}", msg.id, id);
 
         if msg.id != id {
             return Err(anyhow::format_err!("ack seq id mismatch !!!"));

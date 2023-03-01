@@ -154,6 +154,7 @@ impl BlobProvider for MockBlob {
 
         OsRng.fill_bytes(&mut id);
 
+        inner.fragments.insert(id, fragment_hashes.clone());
         inner.memory.insert(id, vec![]);
 
         Ok(Blob {

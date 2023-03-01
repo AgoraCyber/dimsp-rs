@@ -322,7 +322,7 @@ where
         _mns: MNSAccount,
         message: SyncMessage,
     ) -> anyhow::Result<SyncMessage> {
-        if !message.has_close_inbox_stream() {
+        if !message.has_read_fragment() {
             return Err(DismpError::SyncMessageContent("ReadFragment".to_owned()).into());
         }
 
@@ -347,7 +347,7 @@ where
         _mns: MNSAccount,
         message: SyncMessage,
     ) -> anyhow::Result<SyncMessage> {
-        if !message.has_close_inbox_stream() {
+        if !message.has_write_fragment() {
             return Err(DismpError::SyncMessageContent("WriteFrament".to_owned()).into());
         }
 
@@ -402,6 +402,6 @@ mod tests {
 
         let mut session = client.connect_with(account).await.unwrap();
 
-        session.send_message("Hello world").await.unwrap();
+        session.send_message("Hello world", 2).await.unwrap();
     }
 }
