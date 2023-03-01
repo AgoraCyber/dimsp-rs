@@ -1,14 +1,11 @@
-use dimsp_types::{sync_message::Type, SyncMessage};
-use futures::{task::SpawnError, SinkExt, StreamExt};
+use dimsp_types::{sync_message::Type, MNSAccount, SyncMessage};
+use futures::{task::SpawnError, SinkExt, TryStreamExt};
 
 use thiserror::Error;
 
-use crate::{
-    gateway::{Connection, Gateway},
-    sp_network::{SpNetwork, SpNetworkError},
-    threadpool::run_background,
-};
+use crate::{sp_network::SpNetwork, threadpool::run_background};
 
+use dimsp_gateway::*;
 use dimsp_storage::Storage;
 
 #[derive(Debug, Error)]
@@ -29,6 +26,7 @@ pub enum DismpError {
 #[derive(Debug, Clone)]
 pub struct DimspHub<G, N, S> {
     gateway: G,
+    #[allow(unused)]
     network: N,
     storage: S,
 }
@@ -41,7 +39,7 @@ impl<G, N, S> Drop for DimspHub<G, N, S> {
 
 impl<G, N, S> Default for DimspHub<G, N, S>
 where
-    G: Gateway + Default,
+    G: DatagramGateway + Default,
     N: SpNetwork + Default,
     S: Storage + Default,
 {
@@ -52,7 +50,7 @@ where
 
 impl<G, N, S> From<(G, N, S)> for DimspHub<G, N, S>
 where
-    G: Gateway,
+    G: DatagramGateway,
     N: SpNetwork,
     S: Storage,
 {
@@ -63,11 +61,11 @@ where
 
 impl<G, N, S> DimspHub<G, N, S>
 where
-    G: Gateway,
+    G: DatagramGateway,
     N: SpNetwork,
     S: Storage,
 {
-    /// Create new DimspHub instance from ([`gateway`](Gateway),[`network`](SpNetwork),[`stoorage`](Storage))
+    /// Create new DimspHub instance from ([`gateway`](DatagramGateway),[`network`](SpNetwork),[`stoorage`](Storage))
     pub fn new(gateway: G, network: N, storage: S) -> Self {
         Self {
             gateway,
@@ -78,7 +76,7 @@ where
 }
 impl<G, N, S> DimspHub<G, N, S>
 where
-    G: Gateway + Clone + Send + Sync + 'static,
+    G: DatagramGateway + Clone + Send + Sync + 'static,
     N: SpNetwork + Clone + Send + Sync + 'static,
     S: Storage + Clone + Send + Sync + 'static,
 {
@@ -101,19 +99,19 @@ where
 
 impl<G, N, S> DimspHub<G, N, S>
 where
-    G: Gateway + Clone + Send + Sync + 'static,
+    G: DatagramGateway + Clone + Send + Sync + 'static,
     N: SpNetwork + Clone + Send + Sync + 'static,
     S: Storage + Clone + Send + Sync + 'static,
 {
     /// [`DimspHub`] main event loop function.
     async fn event_loop(mut self) -> anyhow::Result<()> {
-        while let Some(conn) = self.gateway.accept().await? {
-            log::debug!("loop {}", conn.conn_id);
+        while let Some(conn) = self.gateway.accept().await {
+            log::debug!("loop {}", conn.id);
             let hub = self.clone();
 
             _ = run_background(async move {
-                let conn_id = conn.conn_id;
-                let uns_id = conn.uns_id;
+                let conn_id = conn.id;
+                let uns_id = conn.context.uns.id;
                 match hub.handle_incoming_connection(conn).await {
                     Ok(_) => {
                         log::info!("UNS({}) connection({}) closed", uns_id, conn_id);
@@ -136,20 +134,24 @@ where
 
 impl<G, N, S> DimspHub<G, N, S>
 where
-    G: Gateway + Clone + Send + 'static,
+    G: DatagramGateway + Clone + Send + 'static,
     N: SpNetwork + Clone + Send + 'static,
     S: Storage + Clone + Send + 'static,
 {
     /// Handle incoming user connection.
     async fn handle_incoming_connection(
         mut self,
-        mut conn: Connection<G::Input, G::Output>,
+        mut conn: DatagramConnection<G::Context>,
     ) -> anyhow::Result<()> {
         use protobuf::Enum;
 
-        log::debug!("handle user({}) connection({})", conn.uns_id, conn.conn_id);
+        log::debug!(
+            "handle user({}) connection({})",
+            conn.context.uns.id,
+            conn.id
+        );
 
-        while let Some(message) = conn.input.next().await {
+        while let Some(message) = conn.input.try_next().await? {
             // extract message type first.
             let message_type = Type::from_i32(message.type_.value())
                 .ok_or(DismpError::SyncMessageType(message.type_.value()))?;
@@ -157,15 +159,25 @@ where
             let message_id = message.id;
 
             let mut response = match message_type {
-                Type::OpenWriteStream => self.open_write_stream(conn.uns_id, message).await?,
-                Type::CloseWriteStream => self.close_write_stream(conn.uns_id, message).await?,
-                Type::OpenInbox => self.open_inbox(conn.uns_id, message).await?,
-                Type::OpenNextInboxStream => {
-                    self.open_next_inbox_stream(conn.uns_id, message).await?
+                Type::OpenWriteStream => {
+                    self.open_write_stream(conn.context.clone(), message)
+                        .await?
                 }
-                Type::CloseInboxStream => self.close_inbox_stream(conn.uns_id, message).await?,
-                Type::ReadFragment => self.read_fragment(conn.uns_id, message).await?,
-                Type::WriteFragment => self.write_fragment(conn.uns_id, message).await?,
+                Type::CloseWriteStream => {
+                    self.close_write_stream(conn.context.clone(), message)
+                        .await?
+                }
+                Type::OpenInbox => self.open_inbox(conn.context.clone(), message).await?,
+                Type::OpenNextInboxStream => {
+                    self.open_next_inbox_stream(conn.context.clone(), message)
+                        .await?
+                }
+                Type::CloseInboxStream => {
+                    self.close_inbox_stream(conn.context.clone(), message)
+                        .await?
+                }
+                Type::ReadFragment => self.read_fragment(conn.context.clone(), message).await?,
+                Type::WriteFragment => self.write_fragment(conn.context.clone(), message).await?,
                 _ => {
                     return Err(DismpError::SyncMessageType(message.type_.value()).into());
                 }
@@ -183,18 +195,12 @@ where
 
     async fn open_write_stream(
         &mut self,
-        uns_id: u64,
+        mns: MNSAccount,
         message: SyncMessage,
     ) -> anyhow::Result<SyncMessage> {
         if !message.has_open_write_stream() {
             return Err(DismpError::SyncMessageContent("OpenWriteStream".to_owned()).into());
         }
-
-        let mns = self
-            .network
-            .mns_by_uns_id(uns_id)
-            .await?
-            .ok_or(SpNetworkError::MNSById(uns_id))?;
 
         let ack = self
             .storage
@@ -214,7 +220,7 @@ where
 
     async fn close_write_stream(
         &mut self,
-        _uns_id: u64,
+        _mns: MNSAccount,
         message: SyncMessage,
     ) -> anyhow::Result<SyncMessage> {
         if !message.has_close_write_stream() {
@@ -239,15 +245,9 @@ where
 
     async fn open_inbox(
         &mut self,
-        uns_id: u64,
+        mns: MNSAccount,
         message: SyncMessage,
     ) -> anyhow::Result<SyncMessage> {
-        let mns = self
-            .network
-            .mns_by_uns_id(uns_id)
-            .await?
-            .ok_or(SpNetworkError::MNSById(uns_id))?;
-
         let ack = self.storage.open_inbox(mns).await?;
 
         let mut response = SyncMessage::new();
@@ -263,15 +263,9 @@ where
 
     async fn open_next_inbox_stream(
         &mut self,
-        uns_id: u64,
+        mns: MNSAccount,
         message: SyncMessage,
     ) -> anyhow::Result<SyncMessage> {
-        let mns = self
-            .network
-            .mns_by_uns_id(uns_id)
-            .await?
-            .ok_or(SpNetworkError::MNSById(uns_id))?;
-
         let ack = self.storage.open_next_inbox_stream(mns).await?;
 
         let mut response = SyncMessage::new();
@@ -287,7 +281,7 @@ where
 
     async fn close_inbox_stream(
         &mut self,
-        _uns_id: u64,
+        _mns: MNSAccount,
         message: SyncMessage,
     ) -> anyhow::Result<SyncMessage> {
         if !message.has_close_inbox_stream() {
@@ -312,7 +306,7 @@ where
 
     async fn read_fragment(
         &mut self,
-        _uns_id: u64,
+        _mns: MNSAccount,
         message: SyncMessage,
     ) -> anyhow::Result<SyncMessage> {
         if !message.has_close_inbox_stream() {
@@ -337,7 +331,7 @@ where
 
     async fn write_fragment(
         &mut self,
-        _uns_id: u64,
+        _mns: MNSAccount,
         message: SyncMessage,
     ) -> anyhow::Result<SyncMessage> {
         if !message.has_close_inbox_stream() {

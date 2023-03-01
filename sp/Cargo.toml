@@ -30,8 +30,13 @@ protobuf = { workspace = true }
 
 dimsp-types = { workspace = true }
 dimsp-storage = { workspace = true }
+dimsp-gateway = { workspace = true }
 
 [dev-dependencies]
 rand = { workspace = true }
 async-std = { workspace = true }
 pretty_env_logger = { workspace = true }
+
+
+[features]
+mock = ["dimsp-gateway/mock"]

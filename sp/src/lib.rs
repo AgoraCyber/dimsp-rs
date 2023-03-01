@@ -1,6 +1,5 @@
-pub mod gateway;
 pub mod hub;
-#[cfg(test)]
+#[cfg(feature = "mock")]
 pub mod mock;
 pub mod sp_network;
 

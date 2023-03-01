@@ -1,105 +1,19 @@
 use std::{
     collections::HashMap,
-    sync::{atomic::AtomicU64, Arc, Mutex},
-    time::Duration,
+    sync::{Arc, Mutex},
 };
 
-use crate::{
-    gateway::{Connection, Gateway},
-    hub::DimspHub,
-    sp_network::SpNetwork,
-};
+use crate::sp_network::SpNetwork;
 
 use async_trait::async_trait;
+
 use dimsp_storage::Storage;
 use dimsp_types::*;
-use futures::{
-    channel::mpsc::{self, SendError},
-    SinkExt, StreamExt,
-};
+
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 enum MockError {}
-
-pub type MockConnection = Connection<mpsc::Receiver<SyncMessage>, mpsc::Sender<SyncMessage>>;
-
-type MockGatewayReceiver = mpsc::Receiver<MockConnection>;
-
-type MockGatewaySender = mpsc::Sender<MockConnection>;
-
-pub struct MockGatewayTester {
-    seq: AtomicU64,
-    sender: MockGatewaySender,
-}
-
-impl MockGatewayTester {
-    pub async fn connect(&mut self, uns_id: u64) -> anyhow::Result<MockConnection> {
-        let conn_id = self.seq.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-
-        let (server_sender, client_receiver) = mpsc::channel(200);
-        let (client_sender, server_receiver) = mpsc::channel(200);
-
-        self.sender
-            .send(MockConnection {
-                uns_id,
-                conn_id,
-                input: server_receiver,
-                output: server_sender,
-            })
-            .await?;
-
-        Ok(MockConnection {
-            uns_id,
-            conn_id,
-            input: client_receiver,
-            output: client_sender,
-        })
-    }
-}
-
-#[derive(Clone)]
-pub struct MockGateway {
-    receiver: Arc<Mutex<Option<MockGatewayReceiver>>>,
-}
-
-impl MockGateway {
-    pub fn new() -> (Self, MockGatewayTester) {
-        let (sender, receiver) = mpsc::channel(100);
-        (
-            Self {
-                receiver: Arc::new(Mutex::new(Some(receiver))),
-            },
-            MockGatewayTester {
-                sender,
-                seq: Default::default(),
-            },
-        )
-    }
-}
-
-#[async_trait]
-impl Gateway for MockGateway {
-    type Error = SendError;
-
-    type Input = mpsc::Receiver<SyncMessage>;
-
-    type Output = mpsc::Sender<SyncMessage>;
-
-    async fn accept(&mut self) -> anyhow::Result<Option<Connection<Self::Input, Self::Output>>> {
-        let receiver = self.receiver.lock().unwrap().take();
-        if let Some(mut receiver) = receiver {
-            let connection = receiver.next().await;
-
-            *self.receiver.lock().unwrap() = Some(receiver);
-
-            Ok(connection)
-        } else {
-            log::warn!("Try call concurrent");
-            Err(anyhow::format_err!("Try call concurrent"))
-        }
-    }
-}
 
 #[derive(Default)]
 struct MockSpNetworkImpl {
@@ -437,55 +351,4 @@ impl Storage for MockStorage {
 
         Ok(inbox)
     }
-}
-
-#[async_std::test]
-async fn test_hub() {
-    _ = pretty_env_logger::try_init();
-
-    let (gateway, mut gateway_tester) = MockGateway::new();
-    let mut sp_network = MockSpNetwork::default();
-    let storage = MockStorage::default();
-
-    sp_network.add_mns(MNSAccount {
-        uns: UNSAccount {
-            id: 1,
-            user_name: "test".to_owned(),
-        },
-        r#type: MNSTypes::Unicast,
-        pub_key: PublicKey::Ed25519(PublicKeyBuff([0u8; 32])),
-        quota: 1024 * 1024 * 10,
-        lease: Duration::from_secs(3600),
-    });
-
-    let hub = DimspHub::new(gateway, sp_network, storage);
-
-    hub.start().unwrap();
-
-    let mut conn = gateway_tester.connect(1).await.unwrap();
-
-    let mut message = SyncMessage::new();
-
-    message.type_ = sync_message::Type::OpenWriteStream.into();
-
-    let mut open_write_stream = OpenWriteStream::new();
-
-    let data = "hello";
-
-    open_write_stream.length = data.len() as u64;
-
-    open_write_stream.fragment_hashes = vec![];
-
-    message.set_open_write_stream(open_write_stream);
-
-    conn.output.send(message).await.unwrap();
-
-    let message = conn.input.next().await.unwrap();
-
-    assert_eq!(message.type_.value(), 1);
-
-    let ack = message.open_write_stream_ack();
-
-    assert_eq!(ack.ack_type.value(), 0);
-    assert_eq!(ack.stream_handle, 0);
 }
