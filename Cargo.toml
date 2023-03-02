@@ -48,3 +48,6 @@ bytes = "^1.4.0"
 # crypto
 sha3 = "0.10.6"
 rand = { version = "0.8.5", features = ["getrandom"] }
+
+# ipfs
+libipld = "0.16.0"
