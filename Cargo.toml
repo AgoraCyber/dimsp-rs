@@ -51,3 +51,4 @@ rand = { version = "0.8.5", features = ["getrandom"] }
 
 # ipfs
 libipld = "0.16.0"
+rusty-leveldb = "1.0.6"
