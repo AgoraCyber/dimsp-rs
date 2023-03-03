@@ -2,6 +2,7 @@
 
 use std::time::Duration;
 
+use libipld::Multihash;
 use serde::{Deserialize, Serialize};
 
 use crate::{PublicKey, UNSAccount};
@@ -19,8 +20,8 @@ pub struct MNSAccount {
     pub quota: u64,
     /// Account storage data lease duration
     pub lease: Duration,
-    /// Using client local public key as client_id
-    pub client_id: PublicKey,
+    /// multihash for client id.
+    pub client_id: Multihash,
 }
 
 /// MNS account types enum

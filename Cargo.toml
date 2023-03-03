@@ -1,5 +1,5 @@
 [workspace]
-members = ["sp", "types", "storage", "gateway", "sp_network"]
+members = ["types"]
 
 [workspace.package]
 version = "0.1.0"
