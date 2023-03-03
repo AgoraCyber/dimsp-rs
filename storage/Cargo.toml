@@ -11,26 +11,39 @@ documentation = "https://docs.rs/dimsp-storage"
 [dependencies]
 # serde support
 serde = { workspace = true }
+serde_json = { workspace = true, optional = true }
 
 # error
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 
 # async 
-async-trait = { workspace = true }
 futures = { workspace = true, features = ["thread-pool"] }
+async-trait = { workspace = true }
 
 # others
+
 bytes = { workspace = true }
 log = { workspace = true }
 once_cell = { workspace = true }
 rs-snowflake = { workspace = true }
-protobuf = { workspace = true }
 rand = { workspace = true }
+libipld = { workspace = true }
+rusty-leveldb = { workspace = true, optional = true }
+rdbc-rs = { workspace = true, optional = true }
 
 #internals
 dimsp-types = { workspace = true }
 
+[dev-dependencies]
+rdbc_sqlite3 = { workspace = true }
+async-std = { workspace = true }
+pretty_env_logger = { workspace = true }
+hex = { workspace = true }
+
 
 [features]
-mock = []
+default = ["leveldb_kv", "leveldb_timeline"]
+
+leveldb_kv = ["rusty-leveldb"]
+leveldb_timeline = ["rusty-leveldb", "serde_json"]

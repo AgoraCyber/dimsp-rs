@@ -2,6 +2,11 @@ use std::fmt::Display;
 
 use hex::{FromHex, ToHex};
 
+use libipld::{
+    cbor::DagCborCodec,
+    prelude::{Decode, Encode},
+    DagCbor,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, thiserror::Error)]
@@ -10,7 +15,7 @@ pub enum PublicKeyError {
     DeserializeLength(usize, String),
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Serialize, DagCbor, Deserialize, Clone, Hash, PartialEq, Eq)]
 #[serde(tag = "type", content = "value")]
 pub enum PublicKey {
     /// rsa1024 public key
@@ -60,6 +65,31 @@ impl Display for PublicKey {
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct PublicKeyBuff<const LEN: usize>(pub [u8; LEN]);
+
+impl<const LEN: usize> Encode<DagCborCodec> for PublicKeyBuff<LEN> {
+    fn encode<W: std::io::Write>(&self, c: DagCborCodec, w: &mut W) -> anyhow::Result<()> {
+        Ok(self.0.to_vec().encode(c, w)?)
+    }
+}
+
+impl<const LEN: usize> Decode<DagCborCodec> for PublicKeyBuff<LEN> {
+    fn decode<R: std::io::Read + std::io::Seek>(
+        c: DagCborCodec,
+        r: &mut R,
+    ) -> anyhow::Result<Self> {
+        let buff = Vec::<u8>::decode(c, r)?;
+
+        if buff.len() != LEN {
+            return Err(anyhow::format_err!(
+                "DagCbor: read public key({}) length error, {}",
+                LEN,
+                buff.len(),
+            ));
+        }
+
+        return Ok(PublicKeyBuff(buff.try_into().unwrap()));
+    }
+}
 
 impl<const LEN: usize> Default for PublicKeyBuff<LEN> {
     fn default() -> Self {

@@ -1,9 +1,8 @@
-mod storage;
-pub use storage::*;
-
-pub mod blob;
-
+pub mod kv;
 pub mod timeline;
 
-#[cfg(feature = "mock")]
-pub mod mock;
+#[cfg(feature = "leveldb_kv")]
+pub mod leveldb_kv;
+
+#[cfg(feature = "leveldb_timeline")]
+pub mod leveldb_timeline;

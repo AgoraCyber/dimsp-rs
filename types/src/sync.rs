@@ -11,7 +11,7 @@ pub enum SyncMessage {
     PullMultipartContent(u64, Mime),
 }
 
-#[derive(Debug, DagCbor, Serialize, Deserialize)]
+#[derive(Debug, DagCbor, Clone, Serialize, Deserialize)]
 pub struct Mime {
     pub id: Cid,
     pub length: u64,

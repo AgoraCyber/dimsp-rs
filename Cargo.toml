@@ -1,5 +1,5 @@
 [workspace]
-members = ["types"]
+members = ["types", "storage"]
 
 [workspace.package]
 version = "0.1.0"
@@ -52,3 +52,9 @@ rand = { version = "0.8.5", features = ["getrandom"] }
 # ipfs
 libipld = "0.16.0"
 rusty-leveldb = "1.0.6"
+
+completeq-rs = "^0.1"
+
+
+rdbc-rs = "^0.1.0"
+rdbc_sqlite3 = "^0.1.0"

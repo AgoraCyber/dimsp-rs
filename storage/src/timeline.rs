@@ -1,20 +1,21 @@
 use async_trait::async_trait;
-use dimsp_types::{Inbox, MNSAccount};
+use dimsp_types::MNSAccount;
+use libipld::Cid;
 
-use crate::blob::Blob;
+use anyhow::Result;
 
-/// Timeline fifo metdata queue.
+/// Ipld kv database.
 #[async_trait]
-pub trait TimelineProvider {
-    /// Append one stream metadata. returns timeline length.
-    async fn append(&mut self, blob: Blob) -> anyhow::Result<u64>;
+pub trait Timeline {
+    /// Append cid into account's timeline column.
+    async fn append(&mut self, mns: MNSAccount, cid: Cid) -> Result<()>;
 
-    /// Get the first blob metadata in timeline of [`account`](MNSAccount)
-    async fn get(&mut self, account: &MNSAccount) -> anyhow::Result<Option<Blob>>;
+    /// Get account's first n cids.
+    async fn get(&mut self, mns: MNSAccount, first_n: u64) -> Result<Vec<Cid>>;
 
-    /// Pop the first blob metadata in timeline of [`account`](MNSAccount)
-    async fn pop(&mut self, account: &MNSAccount) -> anyhow::Result<()>;
+    /// Move timeline cursor to next `n` cid.
+    /// if out of range, the cursor will be set to the end of timeline.
+    async fn advance(&mut self, mns: MNSAccount, steps: u64) -> Result<u64>;
 
-    /// Get [`account`](MNSAccount) statuts infomation
-    async fn status(&mut self, account: &MNSAccount) -> anyhow::Result<Inbox>;
+    async fn length(&mut self, mns: MNSAccount) -> Result<u64>;
 }
